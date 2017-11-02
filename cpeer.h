@@ -3,31 +3,38 @@
 
 #include "red.h"
 #define ACTION_SIZE 1
-#define FILE_NAME_SIZE 3
-#define IP_LIST_SIZE 3
+#define DATA_SIZE 3
+#define ATTRIBUTE_LIST_SIZE 4
+#define DATA_LIST_SIZE 4
+#define RESPONSE_SIZE 4
+#define ATTRIBUTE_SIZE 2
+#define REDUNDANCE_SIZE 2
+#define USE_SIZE 1
+
 #define ACT_SND_N 'N'
 #define ACT_RCV_N 'n'
-#define ACT_SND_QUERY 'Q' //Receive query Action
-#define ACT_RCV_QUERY 'q' //Send query Action
+#define ACT_SND_L 'L'
+#define ACT_RCV_L 'l'
+#define ACT_SND_Q 'Q' //Receive query Action
+#define ACT_RCV_Q 'q' //Send query Action
+#define ACT_SND_P 'P'
+#define ACT_RCV_P 'p'
+#define ACT_SND_C 'C'
+#define ACT_RCV_C 'c'
+
 
 class CPeer
 {
     public:
-        //Size of the types of messages
-        const unsigned int HEADER_SIZE = 1; //[action]..
-        const unsigned int QUERY_SIZE = 3;  //[size][of][query]..
-        //Posible actions
-        //char ACT_SND_QUERY= 'Q'; //Send query  Action
-	//char ACT_RCV_QUERY= 'q'; //Receive query Action
-	
-	int m_query_port;
-	int m_download_port;
-	int m_keepAlive_port;
 
-        std::vector< std::string > lstPeersIp;
-	std::map <std::string, std::vector<int> > m_num_chunks;
+  int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_keepAlive_port;
+  
+       int state;
+	int id;
+
+        std::vector< int > m_sockets;
         
-        CPeer(int query_port, int download_port, int keepAlive_port);
+        CPeer(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port);
         virtual ~CPeer();
 
         std::string intToStr(int num, int size);
@@ -70,23 +77,23 @@ class CPeer
 	//Server side
 
 	void opNS(int clientSD, string word, string attributes);
-	string opReadNS(int clientSD, string word, string attributes);
+	void opReadNS(int clientSD, string word, string attributes);
 	void opWriteNS(int clientSD, string word, string attributes);
 
 	void opLS(int clientSD, string word, string word2, string attributes);
-	string opReadLS(int clientSD, string word, string word2, string attributes);
+	void opReadLS(int clientSD, string word, string word2, string attributes);
 	void opWriteLS(int clientSD, string word, string word2, string attributes);
 
 	void opQS(int clientSD, string word, int depth, bool attributes);
-	string opReadQS(int clientSD, string word, int depth, bool attributes);
+	void opReadQS(int clientSD, string word, int depth, bool attributes);
 	void opWriteQS(int clientSD, string word, int depth, bool attributes);
 
 	void opPS(int clientSD, string words, int depth, string attribute_name);
-	string opReadPS(int clientSD, string words, int depth, string attribute_name);
+	void opReadPS(int clientSD, string words, int depth, string attribute_name);
 	void opWritePS(int clientSD, string words, int depth, string attribute_name);
 
 	void opCS(int clientSD, string word);
-	string opReadCS(int clientSD, string word);
+	void opReadCS(int clientSD, string word);
 	void opWriteCS(int clientSD, string word);
 	
         

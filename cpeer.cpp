@@ -1,9 +1,12 @@
 #include "cpeer.h"
 
-CPeer::CPeer(int query_port, int download_port, int keepAlive_port)
+CPeer::CPeer(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port)
 {
-  m_query_port = query_port;
-  m_download_port = download_port;
+  m_n_port = n_port;
+  m_l_port = l_port;
+  m_q_port = q_port;
+  m_c_port = c_port;
+  m_p_port = p_port;
   m_keepAlive_port = keepAlive_port;
     //ctor
 }
@@ -222,7 +225,7 @@ void CPeer::opNS(int clientSD, string word, string attributes)
   
 }
 
-string CPeer::opReadNS(int clientSD, string word, string attributes){
+void CPeer::opReadNS(int clientSD, string word, string attributes){
   
 }
 
@@ -235,7 +238,7 @@ void CPeer::opLS(int clientSD, string word, string word2, string attributes)
   
 }
 
-string CPeer::opReadLS(int clientSD, string word, string word2, string attributes){
+void CPeer::opReadLS(int clientSD, string word, string word2, string attributes){
   
 }
 
@@ -248,7 +251,7 @@ void CPeer::opQS(int clientSD, string word, int depth, bool attributes)
   
 }
 
-string CPeer::opReadQS(int clientSD, string word, int depth, bool attributes){
+void CPeer::opReadQS(int clientSD, string word, int depth, bool attributes){
   
 }
 
@@ -262,7 +265,7 @@ void CPeer::opPS(int clientSD, string words, int depth, string attribute_name)
   
 }
 
-string CPeer::opReadPS(int clientSD, string words, int depth, string attribute_name){
+void CPeer::opReadPS(int clientSD, string words, int depth, string attribute_name){
   
 }
 
@@ -275,7 +278,7 @@ void CPeer::opCS(int clientSD, string word)
   
 }
 
-string CPeer::opReadCS(int clientSD, string word){
+void CPeer::opReadCS(int clientSD, string word){
   
 }
 
