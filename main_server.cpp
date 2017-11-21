@@ -1,5 +1,4 @@
-#include "client.h"
-#include "cpeer.h"
+#include "server.h"
 #include <iostream>
 
 int main(){

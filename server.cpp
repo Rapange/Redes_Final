@@ -1,15 +1,18 @@
-#include "cpeer.h"
+#include "server.h"
 
-CPeer::CPeer(int query_port, int download_port, int keepAlive_port)
+Server::Server(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port)
 {
-  m_query_port = query_port;
-  m_download_port = download_port;
+  m_n_port = n_port;
+  m_l_port = l_port;
+  m_q_port = q_port;
+  m_c_port = c_port;
+  m_p_port = p_port;
   m_keepAlive_port = keepAlive_port;
     //ctor
 }
 
 //Transforms an int to a sized string e.g., intToStr(21,4) => 0021, intToStr(9,3) => 009
-std::string CPeer::intToStr(int num, int size){
+std::string Server::intToStr(int num, int size){
     std::string result;
     for(int i= 0; i < size; i++)
       result+='0';
@@ -24,7 +27,7 @@ std::string CPeer::intToStr(int num, int size){
 
 
 
-int CPeer::createServerSocket(int portNumber)
+int Server::createServerSocket(int portNumber)
 {
     vector<unsigned int> holder;
     struct sockaddr_in stSockAddr;
@@ -75,7 +78,7 @@ int CPeer::createServerSocket(int portNumber)
     return 0;*/
 }
 
-int CPeer::createClientSocket(int portNumber,std::string serverIP)
+int Server::createClientSocket(int portNumber,std::string serverIP)
 {
   struct sockaddr_in stSockAddr;
   int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -115,168 +118,312 @@ int CPeer::createClientSocket(int portNumber,std::string serverIP)
   return SocketFD;
 }
 
-void CPeer::iniServerBot()
+void Server::iniServerBot()
 {
-  int QuerySD = createServerSocket(m_query_port);
-  int DownloadSD = createServerSocket(m_download_port);
-  int KeepAliveSD = createServerSocket(m_keepAlive_port);
-
-  std::thread(&CPeer::listenForClients,this,QuerySD,ACT_RCV_QUERY).detach();
+  
   
   
 }
 
-void CPeer::listenForClients(int serverSD, char action)
+void Server::listenForClients(int serverSD, char action)
 {
   
 }
 
-void CPeer::iniClientBot()
+void Server::iniClientBot()
 {
-  
+  int port;
+  string Ip;
+  string command;
+  int query_N;
+  cout<<"Ingrese direccion IP del maestro: ";
+  cin>>Ip;
+  cout<<"Ingrese puerto del maestro; ";
+  cin>>port;
+  query_N = createClientSocket(port,Ip);
+  while(true){
+    cin>>command;
+    if(command[0] == 'N') opN(query_N,"test","");
+  }
 }
 
-void CPeer::opReadN(int clientSD)
+char Server::opReadN(int clientSD)
 {
+  /*char* buffer;
+  int size_of_data;
+  string data;
+  buffer = new char[ACTION_SIZE+1]; //n
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
 
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  delete[] buffer;*/
+  char* buffer;
+  char is_successful;
+  buffer = new char[ACTION_SIZE+1];
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer = new char[SUCCESS_SIZE+1];
+  buffer[SUCCESS_SIZE] = '\0';
+  is_successful = buffer[0];
+  delete[] buffer;
+  buffer = NULL;
+
+  return is_successful;
 }
 
-void CPeer::opWriteN(int clientSD)
+void Server::opWriteN(int clientSD, string word, string attributes)
 {
+  string protocol;
+  char* buffer;
+  protocol += ACT_SND_N;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(attributes.size(),ATTRIBUTE_LIST_SIZE);
+  protocol += attributes;
+  //Colocar redundancia?
 
+  buffer = new char[protocol.size()];
+  write(clientSD, buffer, protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
 }
 
-void CPeer::opN(int clientSD)
+char Server::opN(int clientSD, string word, string attributes)
 {
-
+  char is_successful;
+  opWriteN(clientSD, word, attributes);
+  return opReadN(clientSD);
 }
 
-void CPeer::opReadL(int clientSD)
+char Server::opReadL(int clientSD)
 {
+  char* buffer;
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD,buffer,ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
 
+  buffer = new char[SUCCESS_SIZE+1];
+  read(clientSD,buffer,SUCCESS_SIZE);
+  buffer[SUCCESS_SIZE] = '\0';
+  delete[] buffer;
+
+  return buffer[0];
 }
 
-void CPeer::opWriteL(int clientSD)
+void Server::opWriteL(int clientSD, string word, string word2)
 {
+  string protocol;
+  char* buffer;
+  protocol += ACT_SND_L;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(word2.size(),DATA_SIZE);
+  protocol += word2;
 
+  buffer = new char[protocol.size()];
+  write(clientSD,buffer,protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
 }
 
-void CPeer::opL(int clientSD)
+char Server::opL(int clientSD, string word, string word2)
 {
-
+  opWriteL(clientSD, word, word2);
+  return opReadL(clientSD);
 }
 
-void CPeer::opReadQ(int clientSD, string file_name)
+void Server::opReadQ(int clientSD, string word, int depth, bool attributes)
 {
  
 }
 
-void CPeer::opWriteQ(int clientSD, string file_name)
+void Server::opWriteQ(int clientSD, string word, int depth, bool attributes)
 {
   
 }
 
-void CPeer::opQ(int clientSD, string file_name)
+void Server::opQ(int clientSD, string word, int depth, bool attributes)
 {
-  opWriteQ(clientSD, file_name);
-  opReadQ(clientSD, file_name);
+  opWriteQ(clientSD, word, depth, attributes);
+  opReadQ(clientSD, word, depth, attributes);
 }
 
-void CPeer::opReadP(int clientSD)
-{
-
-}
-
-void CPeer::opWriteP(int clientSD)
+void Server::opReadP(int clientSD, string words, int depth, string attribute_name)
 {
 
 }
 
-void CPeer::opP(int clientSD)
+void Server::opWriteP(int clientSD, string words, int depth, string attribute_name)
 {
 
 }
 
-void CPeer::opReadKeep(int clientSD)
+void Server::opP(int clientSD, string words, int depth, string attribute_name)
 {
 
 }
 
-void CPeer::opWriteKeep(int clientSD)
+void Server::opReadC(int clientSD, string word){
+}
+
+void Server::opWriteC(int clientSD, string word){
+  char* buffer;
+  string protocol;
+  protocol += ACT_SND_C;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+
+  buffer = new char[protocol.size()];
+
+  write(clientSD,buffer,protocol.size());
+  delete[] buffer;
+  
+}
+
+void Server::opC(int clientSD, string word){
+}
+
+void Server::opReadKeep(int clientSD)
 {
 
+}
+
+void Server::opWriteKeep(int clientSD)
+{
+
+}
+
+void Server::opKeep(int clientSD){
 }
 
 //Server side
 
-void CPeer::opNS(int clientSD)
+void Server::opNS(int clientSD)
+{
+  char is_successful;
+  opReadNS(clientSD);
+  //insert word
+  opWriteNS(clientSD, is_successful);
+}
+
+string Server::opReadNS(int clientSD){
+  char* buffer;
+  int size_of_data, size_of_attributes;
+  string data, attributes;
+  buffer = new char[ACTION_SIZE+1]; //n
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  data = buffer;
+  delete[] buffer;
+
+  buffer = new char[ATTRIBUTE_LIST_SIZE+1];
+  read(clientSD, buffer, ATTRIBUTE_LIST_SIZE);
+  buffer[ATTRIBUTE_LIST_SIZE] = '\0';
+  size_of_attributes = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_attributes+1];
+  read(clientSD,buffer, size_of_attributes);
+  buffer[size_of_attributes] = '\0';
+  attributes = buffer;
+  delete[] buffer;
+  buffer = NULL;
+  
+  return attributes;
+}
+
+void Server::opWriteNS(int clientSD, char is_successful){
+  string protocol;
+  char* buffer;
+  protocol = ACT_RCV_N;
+  protocol += is_successful;
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
+  write(clientSD,buffer,protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
+}
+
+void Server::opLS(int clientSD, string word, string word2, string attributes)
 {
   
 }
 
-string CPeer::opReadNS(int clientSD){
+void Server::opReadLS(int clientSD, string word, string word2, string attributes){
   
 }
 
-void CPeer::opWriteNS(int clientSD, string file_name){
+void Server::opWriteLS(int clientSD, string word, string word2, string attributes){
   
 }
 
-void CPeer::opLS(int clientSD)
+void Server::opQS(int clientSD, string word, int depth, bool attributes)
 {
   
 }
 
-string CPeer::opReadLS(int clientSD){
+void Server::opReadQS(int clientSD, string word, int depth, bool attributes){
   
 }
 
-void CPeer::opWriteLS(int clientSD, string file_name){
+void Server::opWriteQS(int clientSD, string word, int depth, bool attributes){
   
 }
 
-void CPeer::opQS(int clientSD)
+
+void Server::opPS(int clientSD, string words, int depth, string attribute_name)
 {
   
 }
 
-string CPeer::opReadQS(int clientSD){
+void Server::opReadPS(int clientSD, string words, int depth, string attribute_name){
   
 }
 
-void CPeer::opWriteQS(int clientSD, string file_name){
+void Server::opWritePS(int clientSD, string words, int depth, string attribute_name){
   
 }
 
-
-void CPeer::opPS(int clientSD)
+void Server::opCS(int clientSD, string word)
 {
   
 }
 
-string CPeer::opReadPS(int clientSD){
+void Server::opReadCS(int clientSD, string word){
   
 }
 
-void CPeer::opWritePS(int clientSD, string file_name){
+void Server::opWriteCS(int clientSD, string word){
   
 }
 
-void CPeer::opCS(int clientSD)
-{
-  
-}
-
-string CPeer::opReadCS(int clientSD){
-  
-}
-
-void CPeer::opWriteCS(int clientSD, string file_name){
-  
-}
-
-
-CPeer::~CPeer()
+Server::~Server()
 {
     //dtor
 }

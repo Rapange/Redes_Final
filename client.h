@@ -53,11 +53,11 @@ class Client
 	
         char opReadN(int clientSD);
         void opWriteN(int clientSD, string word, string attributes);
-	void opN(int clientSD, string word, string attributes);
+	char opN(int clientSD, string word, string attributes);
 
-	void opReadL(int clientSD, string word, string word2, string attributes);
-        void opWriteL(int clientSD, string word, string word2, string attributes);
-	void opL(int clientSD, string word, string word2, string attributes);
+	char opReadL(int clientSD);
+        void opWriteL(int clientSD, string word, string word2);
+        char opL(int clientSD, string word, string word2);
 
 	void opReadQ(int clientSD, string word, int depth, bool attributes);
         void opWriteQ(int clientSD, string word, int depth, bool attributes);

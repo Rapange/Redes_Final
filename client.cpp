@@ -149,24 +149,7 @@ void Client::iniClientBot()
 
 char Client::opReadN(int clientSD)
 {
-  /*char* buffer;
-  int size_of_data;
-  string data;
-  buffer = new char[ACTION_SIZE+1]; //n
-  read(clientSD, buffer, ACTION_SIZE);
-  buffer[ACTION_SIZE] = '\0';
-  delete[] buffer;
-
-  buffer = new char[DATA_SIZE+1];
-  read(clientSD, buffer, DATA_SIZE);
-  buffer[DATA_SIZE] = '\0';
-  size_of_data = stoi(buffer);
-  delete[] buffer;
-
-  buffer = new char[size_of_data+1];
-  read(clientSD, buffer, size_of_data);
-  buffer[size_of_data] = '\0';
-  delete[] buffer;*/
+  
   char* buffer;
   char is_successful;
   buffer = new char[ACTION_SIZE+1];
@@ -194,34 +177,57 @@ void Client::opWriteN(int clientSD, string word, string attributes)
   //Colocar redundancia?
 
   buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
   write(clientSD, buffer, protocol.size());
 
   delete[] buffer;
   buffer = NULL;
 }
 
-void Client::opN(int clientSD, string word, string attributes)
+char Client::opN(int clientSD, string word, string attributes)
 {
   char is_successful;
   opWriteN(clientSD, word, attributes);
-  is_successful = opReadN(clientSD);
-  if(is_successful == '0') cout<<"Palabra insertada"<<endl;
-  else cout<<"Palabra no insertada"<<endl;
+  return opReadN(clientSD);
 }
 
-void Client::opReadL(int clientSD, string word, string word2, string attributes)
+char Client::opReadL(int clientSD)
 {
+  char* buffer;
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD,buffer,ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
 
+  buffer = new char[SUCCESS_SIZE+1];
+  read(clientSD,buffer,SUCCESS_SIZE);
+  buffer[SUCCESS_SIZE] = '\0';
+  delete[] buffer;
+
+  return buffer[0];
 }
 
-void Client::opWriteL(int clientSD, string word, string word2, string attributes)
+void Client::opWriteL(int clientSD, string word, string word2)
 {
+  string protocol;
+  char* buffer;
+  protocol += ACT_SND_L;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(word2.size(),DATA_SIZE);
+  protocol += word2;
 
+  buffer = new char[protocol.size()];
+  write(clientSD,buffer,protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
 }
 
-void Client::opL(int clientSD, string word, string word2, string attributes)
+char Client::opL(int clientSD, string word, string word2)
 {
-
+  opWriteL(clientSD, word, word2);
+  return opReadL(clientSD);
 }
 
 void Client::opReadQ(int clientSD, string word, int depth, bool attributes)
