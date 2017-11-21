@@ -1,18 +1,15 @@
-#include "server.h"
+#include "cpeer.h"
 
-Server::Server(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port)
+CPeer::CPeer(int query_port, int download_port, int keepAlive_port)
 {
-  m_n_port = n_port;
-  m_l_port = l_port;
-  m_q_port = q_port;
-  m_c_port = c_port;
-  m_p_port = p_port;
+  m_query_port = query_port;
+  m_download_port = download_port;
   m_keepAlive_port = keepAlive_port;
-  //ctor
+    //ctor
 }
 
 //Transforms an int to a sized string e.g., intToStr(21,4) => 0021, intToStr(9,3) => 009
-std::string Server::intToStr(int num, int size){
+std::string CPeer::intToStr(int num, int size){
     std::string result;
     for(int i= 0; i < size; i++)
       result+='0';
@@ -23,7 +20,11 @@ std::string Server::intToStr(int num, int size){
     return result;
 }
 
-int Server::createServerSocket(int portNumber)
+
+
+
+
+int CPeer::createServerSocket(int portNumber)
 {
     vector<unsigned int> holder;
     struct sockaddr_in stSockAddr;
@@ -74,7 +75,7 @@ int Server::createServerSocket(int portNumber)
     return 0;*/
 }
 
-int Server::createClientSocket(int portNumber,std::string ServerIP)
+int CPeer::createClientSocket(int portNumber,std::string serverIP)
 {
   struct sockaddr_in stSockAddr;
   int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -90,7 +91,7 @@ int Server::createClientSocket(int portNumber,std::string ServerIP)
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(portNumber);
 
-  Res = inet_pton(AF_INET, ServerIP.data(), &stSockAddr.sin_addr);
+  Res = inet_pton(AF_INET, serverIP.data(), &stSockAddr.sin_addr);
 
   if (0 > Res)
   {
@@ -114,175 +115,168 @@ int Server::createClientSocket(int portNumber,std::string ServerIP)
   return SocketFD;
 }
 
-void Server::iniServerBot()
+void CPeer::iniServerBot()
 {
+  int QuerySD = createServerSocket(m_query_port);
+  int DownloadSD = createServerSocket(m_download_port);
+  int KeepAliveSD = createServerSocket(m_keepAlive_port);
 
-
-
+  std::thread(&CPeer::listenForClients,this,QuerySD,ACT_RCV_QUERY).detach();
+  
+  
 }
 
-void Server::listenForClients(int ServerSD, char action)
+void CPeer::listenForClients(int serverSD, char action)
 {
-
+  
 }
 
-void Server::iniClientBot()
+void CPeer::iniClientBot()
 {
-
+  
 }
 
-void Server::opReadN(int clientSD, string word, string attributes)
-{
-
-}
-
-void Server::opWriteN(int clientSD, string word, string attributes)
-{
-
-}
-
-void Server::opN(int clientSD, string word, string attributes)
+void CPeer::opReadN(int clientSD)
 {
 
 }
 
-void Server::opReadL(int clientSD, string word, string word2, string attributes)
+void CPeer::opWriteN(int clientSD)
 {
 
 }
 
-void Server::opWriteL(int clientSD, string word, string word2, string attributes)
+void CPeer::opN(int clientSD)
 {
 
 }
 
-void Server::opL(int clientSD, string word, string word2, string attributes)
+void CPeer::opReadL(int clientSD)
 {
 
 }
 
-void Server::opReadQ(int clientSD, string word, int depth, bool attributes)
+void CPeer::opWriteL(int clientSD)
 {
 
 }
 
-void Server::opWriteQ(int clientSD, string word, int depth, bool attributes)
+void CPeer::opL(int clientSD)
 {
 
 }
 
-void Server::opQ(int clientSD, string word, int depth, bool attributes)
+void CPeer::opReadQ(int clientSD, string file_name)
 {
-  opWriteQ(clientSD, word, depth, attributes);
-  opReadQ(clientSD, word, depth, attributes);
+ 
 }
 
-void Server::opReadP(int clientSD, string words, int depth, string attribute_name)
+void CPeer::opWriteQ(int clientSD, string file_name)
 {
-
+  
 }
 
-void Server::opWriteP(int clientSD, string words, int depth, string attribute_name)
+void CPeer::opQ(int clientSD, string file_name)
 {
-
+  opWriteQ(clientSD, file_name);
+  opReadQ(clientSD, file_name);
 }
 
-void Server::opP(int clientSD, string words, int depth, string attribute_name)
-{
-
-}
-
-void Server::opReadC(int clientSD, string word){
-}
-
-void Server::opWriteC(int clientSD, string word){
-}
-
-void Server::opC(int clientSD, string word){
-}
-
-void Server::opReadKeep(int clientSD)
+void CPeer::opReadP(int clientSD)
 {
 
 }
 
-void Server::opWriteKeep(int clientSD)
+void CPeer::opWriteP(int clientSD)
 {
 
 }
 
-void Server::opKeep(int clientSD){
+void CPeer::opP(int clientSD)
+{
+
+}
+
+void CPeer::opReadKeep(int clientSD)
+{
+
+}
+
+void CPeer::opWriteKeep(int clientSD)
+{
+
 }
 
 //Server side
 
-void Server::opNS(int clientSD, string word, string attributes)
+void CPeer::opNS(int clientSD)
 {
-
+  
 }
 
-void Server::opReadNS(int clientSD, string word, string attributes){
-
+string CPeer::opReadNS(int clientSD){
+  
 }
 
-void Server::opWriteNS(int clientSD, string word, string attributes){
-
+void CPeer::opWriteNS(int clientSD, string file_name){
+  
 }
 
-void Server::opLS(int clientSD, string word, string word2, string attributes)
+void CPeer::opLS(int clientSD)
 {
-
+  
 }
 
-void Server::opReadLS(int clientSD, string word, string word2, string attributes){
-
+string CPeer::opReadLS(int clientSD){
+  
 }
 
-void Server::opWriteLS(int clientSD, string word, string word2, string attributes){
-
+void CPeer::opWriteLS(int clientSD, string file_name){
+  
 }
 
-void Server::opQS(int clientSD, string word, int depth, bool attributes)
+void CPeer::opQS(int clientSD)
 {
-
+  
 }
 
-void Server::opReadQS(int clientSD, string word, int depth, bool attributes){
-
+string CPeer::opReadQS(int clientSD){
+  
 }
 
-void Server::opWriteQS(int clientSD, string word, int depth, bool attributes){
-
+void CPeer::opWriteQS(int clientSD, string file_name){
+  
 }
 
 
-void Server::opPS(int clientSD, string words, int depth, string attribute_name)
+void CPeer::opPS(int clientSD)
 {
-
+  
 }
 
-void Server::opReadPS(int clientSD, string words, int depth, string attribute_name){
-
+string CPeer::opReadPS(int clientSD){
+  
 }
 
-void Server::opWritePS(int clientSD, string words, int depth, string attribute_name){
-
+void CPeer::opWritePS(int clientSD, string file_name){
+  
 }
 
-void Server::opCS(int clientSD, string word)
+void CPeer::opCS(int clientSD)
 {
-
+  
 }
 
-void Server::opReadCS(int clientSD, string word){
-
+string CPeer::opReadCS(int clientSD){
+  
 }
 
-void Server::opWriteCS(int clientSD, string word){
-
+void CPeer::opWriteCS(int clientSD, string file_name){
+  
 }
 
-Server::~Server()
+
+CPeer::~CPeer()
 {
     //dtor
 }

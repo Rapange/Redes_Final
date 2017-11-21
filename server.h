@@ -1,101 +1,98 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef CPEER_H
+#define CPEER_H
 
 #include "red.h"
 #define ACTION_SIZE 1
-#define DATA_SIZE 3
-#define ATTRIBUTE_LIST_SIZE 4
-#define DATA_LIST_SIZE 4
-#define RESPONSE_SIZE 4
-#define ATTRIBUTE_SIZE 2
-#define REDUNDANCE_SIZE 2
-#define USE_SIZE 1
+#define FILE_NAME_SIZE 3
+#define CHUNK_LIST_SIZE 4
+#define IP_LIST_SIZE 3
+#define ACT_SND_JOIN 'J'
+#define ACT_RCV_JOIN 'j'
+#define ACT_SND_QUERY 'Q' //Receive query Action
+#define ACT_RCV_QUERY 'q' //Send query Action
 
-#define ACT_SND_N 'N'
-#define ACT_RCV_N 'n'
-#define ACT_SND_L 'L'
-#define ACT_RCV_L 'l'
-#define ACT_SND_Q 'Q' //Receive query Action
-#define ACT_RCV_Q 'q' //Send query Action
-#define ACT_SND_P 'P'
-#define ACT_RCV_P 'p'
-#define ACT_SND_C 'C'
-#define ACT_RCV_C 'c'
-
-class Server
+class CPeer
 {
-  public:
-    int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_keepAlive_port;
-    int state;
-  	int id;
-    std::vector< int > m_sockets;
+    public:
+        //Size of the types of messages
+        const unsigned int HEADER_SIZE = 1; //[action]..
+        const unsigned int QUERY_SIZE = 3;  //[size][of][query]..
+        //Posible actions
+        //char ACT_SND_QUERY= 'Q'; //Send query  Action
+	//char ACT_RCV_QUERY= 'q'; //Receive query Action
+	
+	int m_query_port;
+	int m_download_port;
+	int m_keepAlive_port;
 
-    Server(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port);
-    virtual ~Server();
-    std::string intToStr(int num, int size);
+        std::vector< std::string > lstPeersIp;
+	std::map <std::string, std::vector<int> > m_num_chunks;
+        
+        CPeer(int query_port, int download_port, int keepAlive_port);
+        virtual ~CPeer();
 
-    void iniServerBot();
-   	void listenForClients(int serverSD, char action);
-	  void iniClientBot();
-    int createClientSocket(int portNumber, string serverIP);
-    int createServerSocket(int portNumber);
+        std::string intToStr(int num, int size);
 
-    //Client side
-    //Operation New Node
-    void opReadN(int clientSD, string word, string attributes);
-    void opWriteN(int clientSD, string word, string attributes);
-	  void opN(int clientSD, string word, string attributes);
+        
+	
+        void iniServerBot();
+	void listenForClients(int serverSD, char action);
+	
+        void iniClientBot();
+        int createClientSocket(int portNumber, string serverIP);
+        int createServerSocket(int portNumber);
+        
+	//Client side
+	
+        void opReadN(int clientSD, string file_name);
+        void opWriteN(int clientSD, string file_name);
+	void opN(int clientSD, string file_name);
 
-    //Operation Link Nodes
-    void opReadL(int clientSD, string word, string word2, string attributes);
-    void opWriteL(int clientSD, string word, string word2, string attributes);
-	  void opL(int clientSD, string word, string word2, string attributes);
+	void opReadL(int clientSD);
+        void opWriteL(int clientSD);
+	void opL(int clientSD);
 
-    //Operation Query
-    void opReadQ(int clientSD, string word, int depth, bool attributes);
-    void opWriteQ(int clientSD, string word, int depth, bool attributes);
-	  void opQ(int clientSD, string word, int depth, bool attributes);
+	void opReadQ(int clientSD);
+        void opWriteQ(int clientSD);
+	void opQ(int clientSD);
 
-    //Operation Pattern Finder
-    void opReadP(int clientSD, string words, int depth, string attribute_name);
-    void opWriteP(int clientSD, string words, int depth, string attribute_name);
-	  void opP(int clientSD, string words, int depth, string attribute_name);
+	void opReadP(int clientSD);
+        void opWriteP(int clientSD);
+	void opP(int clientSD);
 
-    //Operation Node Information
-    void opReadC(int clientSD, string word);
-    void opWriteC(int clientSD, string word);
-	  void opC(int clientSD, string word);
+	void opReadC(int clientSD);
+        void opWriteC(int clientSD);
+	void opC(int clientSD);
+	
+	void opReadKeep(int clientSD); //Keep Alive operation
+        void opWriteKeep(int clientSD);
+	void opKeep(int clientSD);
 
-    //Keep Alive Operations
-    void opReadKeep(int clientSD);
-    void opWriteKeep(int clientSD);
-	  void opKeep(int clientSD);
+	//Server side
 
-    //Server side
-    //Operation New Node
-    void opNS(int clientSD, string word, string attributes);
-	  void opReadNS(int clientSD, string word, string attributes);
-	  void opWriteNS(int clientSD, string word, string attributes);
+	void opNS(int clientSD);
+	string opReadNS(int clientSD);
+	void opWriteNS(int clientSD, string file_name);
 
-    //Operation Link Nodes
-    void opLS(int clientSD, string word, string word2, string attributes);
-	  void opReadLS(int clientSD, string word, string word2, string attributes);
-	  void opWriteLS(int clientSD, string word, string word2, string attributes);
+	void opLS(int clientSD);
+	string opReadLS(int clientSD);
+	void opWriteLS(int clientSD, string file_name);
 
-    //Operation Query
-    void opQS(int clientSD, string word, int depth, bool attributes);
-	  void opReadQS(int clientSD, string word, int depth, bool attributes);
-	  void opWriteQS(int clientSD, string word, int depth, bool attributes);
+	void opQS(int clientSD);
+	string opReadQS(int clientSD);
+	void opWriteQS(int clientSD, string file_name);
 
-    //Operation Pattern Finder
-    void opPS(int clientSD, string words, int depth, string attribute_name);
-	  void opReadPS(int clientSD, string words, int depth, string attribute_name);
-	  void opWritePS(int clientSD, string words, int depth, string attribute_name);
+	void opPS(int clientSD);
+	string opReadPS(int clientSD);
+	void opWritePS(int clientSD, string file_name);
 
-    //Operation Node Information
-    void opCS(int clientSD, string word);
-	  void opReadCS(int clientSD, string word);
-	  void opWriteCS(int clientSD, string word);
+	void opCS(int clientSD);
+	string opReadCS(int clientSD);
+	void opWriteCS(int clientSD, string file_name);
+	
+        
+
+	
 };
 
-#endif
+#endif // CPEER_H
