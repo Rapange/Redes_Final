@@ -22,20 +22,22 @@
 #define ACT_RCV_P 'p'
 #define ACT_SND_C 'C'
 #define ACT_RCV_C 'c'
+#define ACT_SND_S 'S'
+#define ACT_RCV_S 's'
 
 
 class Server
 {
     public:
 
-  int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_keepAlive_port;
+  int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_s_port, m_keepAlive_port;
   
        int state;
 	int id;
-
+	std::vector< std::vector< std::string > > m_connections;
         std::vector< int > m_sockets;
         
-        Server(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port);
+        Server(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port);
         virtual ~Server();
 
         std::string intToStr(int num, int size);
@@ -81,23 +83,25 @@ class Server
 	string opReadNS(int clientSD);
 	void opWriteNS(int clientSD, char is_successful);
 
-	void opLS(int clientSD, string word, string word2, string attributes);
+	void opLS(int clientSD);
 	void opReadLS(int clientSD, string word, string word2, string attributes);
 	void opWriteLS(int clientSD, string word, string word2, string attributes);
 
-	void opQS(int clientSD, string word, int depth, bool attributes);
+	void opQS(int clientSD);
 	void opReadQS(int clientSD, string word, int depth, bool attributes);
 	void opWriteQS(int clientSD, string word, int depth, bool attributes);
 
-	void opPS(int clientSD, string words, int depth, string attribute_name);
+	void opPS(int clientSD);
 	void opReadPS(int clientSD, string words, int depth, string attribute_name);
 	void opWritePS(int clientSD, string words, int depth, string attribute_name);
 
-	void opCS(int clientSD, string word);
+	void opCS(int clientSD);
 	void opReadCS(int clientSD, string word);
 	void opWriteCS(int clientSD, string word);
 	
-        
+        void opSS(int clientSD);
+	void opReadSS(int clientSD);
+	void opWriteSS(int clientSD);
 
 	
 };

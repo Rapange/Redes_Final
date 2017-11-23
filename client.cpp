@@ -1,12 +1,13 @@
 #include "client.h"
 
-Client::Client(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port)
+Client::Client(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port)
 {
   m_n_port = n_port;
   m_l_port = l_port;
   m_q_port = q_port;
   m_c_port = c_port;
   m_p_port = p_port;
+  m_s_port = s_port;
   m_keepAlive_port = keepAlive_port;
     //ctor
 }
@@ -136,14 +137,19 @@ void Client::iniClientBot()
   string Ip;
   string command;
   int query_N;
+  char is_successful;
   cout<<"Ingrese direccion IP del maestro: ";
   cin>>Ip;
-  cout<<"Ingrese puerto del maestro; ";
-  cin>>port;
-  query_N = createClientSocket(port,Ip);
+  
+  query_N = createClientSocket(m_n_port,Ip);
   while(true){
     cin>>command;
-    if(command[0] == 'N') opN(query_N,"test","");
+    if(command[0] == 'N'){
+      cout<<"Se agrega la palabra test"<<endl;
+      is_successful = opN(query_N,"test","");
+      if(is_successful == '1') cout<<"Palabra agregada"<<endl;
+      else cout<<"ERROR"<<endl;
+    }
   }
 }
 
@@ -153,14 +159,18 @@ char Client::opReadN(int clientSD)
   char* buffer;
   char is_successful;
   buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
   delete[] buffer;
 
   buffer = new char[SUCCESS_SIZE+1];
+  read(clientSD, buffer, SUCCESS_SIZE);
   buffer[SUCCESS_SIZE] = '\0';
   is_successful = buffer[0];
   delete[] buffer;
   buffer = NULL;
+
+  cout<<is_successful<<endl;
 
   return is_successful;
 }

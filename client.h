@@ -22,20 +22,21 @@
 #define ACT_RCV_P 'p'
 #define ACT_SND_C 'C'
 #define ACT_RCV_C 'c'
-
+#define ACT_SND_S 'S'
+#define ACT_RCV_S 's'
 
 class Client
 {
     public:
 
-  int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_keepAlive_port;
+  int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_s_port, m_keepAlive_port;
   
        int state;
 	int id;
 
         std::vector< int > m_sockets;
         
-        Client(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port);
+        Client(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port);
         virtual ~Client();
 
         std::string intToStr(int num, int size);

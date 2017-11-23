@@ -1,12 +1,13 @@
 #include "server.h"
 
-Server::Server(int n_port, int l_port, int q_port, int p_port, int c_port, int keepAlive_port)
+Server::Server(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port)
 {
   m_n_port = n_port;
   m_l_port = l_port;
   m_q_port = q_port;
   m_c_port = c_port;
   m_p_port = p_port;
+  m_s_port = s_port;
   m_keepAlive_port = keepAlive_port;
     //ctor
 }
@@ -121,30 +122,54 @@ int Server::createClientSocket(int portNumber,std::string serverIP)
 void Server::iniServerBot()
 {
   
-  
+  int NSD = createServerSocket(m_n_port);
+  int LSD = createServerSocket(m_l_port);
+  int QSD = createServerSocket(m_q_port);
+  int PSD = createServerSocket(m_p_port);
+  int CSD = createServerSocket(m_c_port);
+  int SSD = createServerSocket(m_s_port);
+
+  std::thread(&Server::listenForClients,this,NSD,ACT_RCV_N).detach();
+  std::thread(&Server::listenForClients,this,LSD,ACT_RCV_L).detach();
+  std::thread(&Server::listenForClients,this,QSD,ACT_RCV_Q).detach();
+  std::thread(&Server::listenForClients,this,PSD,ACT_RCV_P).detach();
+  std::thread(&Server::listenForClients,this,CSD,ACT_RCV_C).detach();
+  std::thread(&Server::listenForClients,this,SSD,ACT_RCV_S).detach();
   
 }
 
 void Server::listenForClients(int serverSD, char action)
 {
-  
+  int ConnectFD = 0;
+  while(true)
+  {
+    ConnectFD = accept(serverSD, NULL, NULL);
+
+    if(0 > ConnectFD)
+    {
+       perror("error accept failed");
+       close(serverSD);
+       exit(EXIT_FAILURE);
+    }
+    if(action == ACT_RCV_N)
+      std::thread(&Server::opNS,this,ConnectFD).detach();
+    /*else if(action == ACT_RCV_L)
+      std::thread(&Server::opLS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_Q)
+      std::thread(&Server::opQS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_P)
+      std::thread(&Server::opPS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_C)
+      std::thread(&Server::opCS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_S)
+      std::thread(&Server::opSS,this,ConnectFD).detach();*/
+    
+ }
 }
 
 void Server::iniClientBot()
 {
-  int port;
-  string Ip;
-  string command;
-  int query_N;
-  cout<<"Ingrese direccion IP del maestro: ";
-  cin>>Ip;
-  cout<<"Ingrese puerto del maestro; ";
-  cin>>port;
-  query_N = createClientSocket(port,Ip);
-  while(true){
-    cin>>command;
-    if(command[0] == 'N') opN(query_N,"test","");
-  }
+  while(true);
 }
 
 char Server::opReadN(int clientSD)
@@ -315,9 +340,12 @@ void Server::opKeep(int clientSD){
 void Server::opNS(int clientSD)
 {
   char is_successful;
+  
   opReadNS(clientSD);
   //insert word
+  is_successful = '1';
   opWriteNS(clientSD, is_successful);
+  
 }
 
 string Server::opReadNS(int clientSD){
@@ -353,6 +381,8 @@ string Server::opReadNS(int clientSD){
   attributes = buffer;
   delete[] buffer;
   buffer = NULL;
+
+  cout<<data<<endl;
   
   return attributes;
 }
@@ -364,13 +394,15 @@ void Server::opWriteNS(int clientSD, char is_successful){
   protocol += is_successful;
   buffer = new char[protocol.size()];
   protocol.copy(buffer,protocol.size(),0);
+
+  cout<<protocol<<endl;
   write(clientSD,buffer,protocol.size());
 
   delete[] buffer;
   buffer = NULL;
 }
 
-void Server::opLS(int clientSD, string word, string word2, string attributes)
+void Server::opLS(int clientSD)
 {
   
 }
@@ -383,7 +415,7 @@ void Server::opWriteLS(int clientSD, string word, string word2, string attribute
   
 }
 
-void Server::opQS(int clientSD, string word, int depth, bool attributes)
+void Server::opQS(int clientSD)
 {
   
 }
@@ -397,7 +429,7 @@ void Server::opWriteQS(int clientSD, string word, int depth, bool attributes){
 }
 
 
-void Server::opPS(int clientSD, string words, int depth, string attribute_name)
+void Server::opPS(int clientSD)
 {
   
 }
@@ -410,7 +442,7 @@ void Server::opWritePS(int clientSD, string words, int depth, string attribute_n
   
 }
 
-void Server::opCS(int clientSD, string word)
+void Server::opCS(int clientSD)
 {
   
 }
@@ -421,6 +453,15 @@ void Server::opReadCS(int clientSD, string word){
 
 void Server::opWriteCS(int clientSD, string word){
   
+}
+
+void Server::opSS(int clientSD){
+}
+
+void Server::opReadSS(int clientSD){
+}
+
+void Server::opWriteSS(int clientSD){
 }
 
 Server::~Server()
