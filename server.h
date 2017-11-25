@@ -34,8 +34,8 @@ class Server
   
        int state;
 	int id;
-	std::vector< std::vector< std::string > > m_connections;
-        std::vector< int > m_sockets;
+	std::vector< std::vector< std::pair < std::string, int > > > m_ip_port;
+        std::vector< std::vector< int > > m_sockets;
         
         Server(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port);
         virtual ~Server();
@@ -54,12 +54,12 @@ class Server
 	//Client side
 	
         char opReadN(int clientSD);
-        void opWriteN(int clientSD, string word, string attributes);
-	char opN(int clientSD, string word, string attributes);
+        void opWriteN(int clientSD, string n_protocol);
+	char opN(int clientSD, string n_protocol);
 
 	char opReadL(int clientSD);
-        void opWriteL(int clientSD, string word, string word2);
-        char opL(int clientSD, string word, string word2);
+        void opWriteL(int clientSD, string l_protocol);
+        char opL(int clientSD, string l_protocol);
 
 	void opReadQ(int clientSD, string word, int depth, bool attributes);
         void opWriteQ(int clientSD, string word, int depth, bool attributes);
@@ -80,12 +80,12 @@ class Server
 	//Server side
 
 	void opNS(int clientSD);
-	string opReadNS(int clientSD);
+	string opReadNS(int clientSD, std::string& n_protocol);
 	void opWriteNS(int clientSD, char is_successful);
 
 	void opLS(int clientSD);
-	void opReadLS(int clientSD, string word, string word2, string attributes);
-	void opWriteLS(int clientSD, string word, string word2, string attributes);
+	void opReadLS(int clientSD, std::string& l_protocol);
+	void opWriteLS(int clientSD, char is_successful);
 
 	void opQS(int clientSD);
 	void opReadQS(int clientSD, string word, int depth, bool attributes);

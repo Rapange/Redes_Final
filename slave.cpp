@@ -1,15 +1,20 @@
-#include "cpeer.h"
+#include "slave.h"
+#include "node.h"
 
-CPeer::CPeer(int query_port, int download_port, int keepAlive_port)
+Slave::Slave(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port)
 {
-  m_query_port = query_port;
-  m_download_port = download_port;
+  m_n_port = n_port;
+  m_l_port = l_port;
+  m_q_port = q_port;
+  m_c_port = c_port;
+  m_p_port = p_port;
+  m_s_port = s_port;
   m_keepAlive_port = keepAlive_port;
     //ctor
 }
 
 //Transforms an int to a sized string e.g., intToStr(21,4) => 0021, intToStr(9,3) => 009
-std::string CPeer::intToStr(int num, int size){
+std::string Slave::intToStr(int num, int size){
     std::string result;
     for(int i= 0; i < size; i++)
       result+='0';
@@ -24,7 +29,7 @@ std::string CPeer::intToStr(int num, int size){
 
 
 
-int CPeer::createServerSocket(int portNumber)
+int Slave::createServerSocket(int portNumber)
 {
     vector<unsigned int> holder;
     struct sockaddr_in stSockAddr;
@@ -75,7 +80,7 @@ int CPeer::createServerSocket(int portNumber)
     return 0;*/
 }
 
-int CPeer::createClientSocket(int portNumber,std::string serverIP)
+int Slave::createClientSocket(int portNumber,std::string serverIP)
 {
   struct sockaddr_in stSockAddr;
   int SocketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -115,168 +120,353 @@ int CPeer::createClientSocket(int portNumber,std::string serverIP)
   return SocketFD;
 }
 
-void CPeer::iniServerBot()
-{
-  int QuerySD = createServerSocket(m_query_port);
-  int DownloadSD = createServerSocket(m_download_port);
-  int KeepAliveSD = createServerSocket(m_keepAlive_port);
-
-  std::thread(&CPeer::listenForClients,this,QuerySD,ACT_RCV_QUERY).detach();
-  
-  
-}
-
-void CPeer::listenForClients(int serverSD, char action)
+void Slave::iniServerBot()
 {
   
-}
+  int NSD = createServerSocket(m_n_port);
+  int LSD = createServerSocket(m_l_port);
+  int QSD = createServerSocket(m_q_port);
+  int PSD = createServerSocket(m_p_port);
+  int CSD = createServerSocket(m_c_port);
+  int SSD = createServerSocket(m_s_port);
 
-void CPeer::iniClientBot()
-{
+  std::thread(&Slave::listenForClients,this,NSD,ACT_RCV_N).detach();
+  std::thread(&Slave::listenForClients,this,LSD,ACT_RCV_L).detach();
+  std::thread(&Slave::listenForClients,this,QSD,ACT_RCV_Q).detach();
+  std::thread(&Slave::listenForClients,this,PSD,ACT_RCV_P).detach();
+  std::thread(&Slave::listenForClients,this,CSD,ACT_RCV_C).detach();
+  std::thread(&Slave::listenForClients,this,SSD,ACT_RCV_S).detach();
   
 }
 
-void CPeer::opReadN(int clientSD)
+void Slave::listenForClients(int serverSD, char action)
 {
+  int ConnectFD = 0;
+  while(true)
+  {
+    ConnectFD = accept(serverSD, NULL, NULL);
+
+    if(0 > ConnectFD)
+    {
+       perror("error accept failed");
+       close(serverSD);
+       exit(EXIT_FAILURE);
+    }
+    if(action == ACT_RCV_N)
+      std::thread(&Slave::opNS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_L)
+      std::thread(&Slave::opLS,this,ConnectFD).detach();
+    /*else if(action == ACT_RCV_Q)
+      std::thread(&Slave::opQS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_P)
+      std::thread(&Slave::opPS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_C)
+      std::thread(&Slave::opCS,this,ConnectFD).detach();
+    else if(action == ACT_RCV_S)
+      std::thread(&Slave::opSS,this,ConnectFD).detach();*/
+    
+ }
+}
+
+//str1,str2,str3
+void Slave::strToVec(std::vector<std::string>& formatted_string, std::string& normal_string){
+  std::string holder_string;
+  for(unsigned int i = 0; i < normal_string.size(); i++){
+    if(normal_string[i] != ','){
+      holder_string += normal_string[i];
+    }
+    else{
+      formatted_string.push_back(holder_string);
+      holder_string = "";
+    }
+  }
+  if(holder_string != ""){
+    formatted_string.push_back(holder_string);
+  }
+  return;
+}
+
+char Slave::addWord(std::string data, std::vector<std::string>& attributes){
+  if(m_words[data]) return '0';
+  m_words[data] = new Node(data,attributes);
+  /*Aqui se escribe en el archivo*/
+  return '1';
+}
+
+char Slave::addRelation(std::string data_from, std::string data_to){
+  if(!m_words[data_from]) return '0';
+  if(m_words[data_from]->addRelation(data_to)) return '1';
+  return '0';
+}
+
+void Slave::iniClientBot()
+{
+  while(true);
+}
+
+char Slave::opReadN(int clientSD)
+{
+  
+}
+
+void Slave::opWriteN(int clientSD, string n_protocol)
+{
+  
 
 }
 
-void CPeer::opWriteN(int clientSD)
+char Slave::opN(int clientSD, string n_protocol)
 {
-
+  
 }
 
-void CPeer::opN(int clientSD)
+char Slave::opReadL(int clientSD)
 {
-
+  
 }
 
-void CPeer::opReadL(int clientSD)
+void Slave::opWriteL(int clientSD, string word, string word2)
 {
-
+  
 }
 
-void CPeer::opWriteL(int clientSD)
+char Slave::opL(int clientSD, string word, string word2)
 {
-
+  
 }
 
-void CPeer::opL(int clientSD)
-{
-
-}
-
-void CPeer::opReadQ(int clientSD, string file_name)
+void Slave::opReadQ(int clientSD, string word, int depth, bool attributes)
 {
  
 }
 
-void CPeer::opWriteQ(int clientSD, string file_name)
+void Slave::opWriteQ(int clientSD, string word, int depth, bool attributes)
 {
   
 }
 
-void CPeer::opQ(int clientSD, string file_name)
-{
-  opWriteQ(clientSD, file_name);
-  opReadQ(clientSD, file_name);
-}
-
-void CPeer::opReadP(int clientSD)
-{
-
-}
-
-void CPeer::opWriteP(int clientSD)
-{
-
-}
-
-void CPeer::opP(int clientSD)
-{
-
-}
-
-void CPeer::opReadKeep(int clientSD)
-{
-
-}
-
-void CPeer::opWriteKeep(int clientSD)
-{
-
-}
-
-//Server side
-
-void CPeer::opNS(int clientSD)
+void Slave::opQ(int clientSD, string word, int depth, bool attributes)
 {
   
 }
 
-string CPeer::opReadNS(int clientSD){
-  
+void Slave::opReadP(int clientSD, string words, int depth, string attribute_name)
+{
+
 }
 
-void CPeer::opWriteNS(int clientSD, string file_name){
-  
+void Slave::opWriteP(int clientSD, string words, int depth, string attribute_name)
+{
+
 }
 
-void CPeer::opLS(int clientSD)
+void Slave::opP(int clientSD, string words, int depth, string attribute_name)
 {
   
 }
 
-string CPeer::opReadLS(int clientSD){
+void Slave::opReadC(int clientSD, string word){
+}
+
+void Slave::opWriteC(int clientSD, string word){
+  
   
 }
 
-void CPeer::opWriteLS(int clientSD, string file_name){
+void Slave::opC(int clientSD, string word){
+}
+
+void Slave::opReadKeep(int clientSD)
+{
+
+}
+
+void Slave::opWriteKeep(int clientSD)
+{
+
+}
+
+void Slave::opKeep(int clientSD){
+}
+
+//Slave side
+
+void Slave::opNS(int clientSD)
+{
+  char is_successful;
+  std::string data, attributes;
+  std::vector<std::string> formatted_attr;
+  
+  opReadNS(clientSD,data,attributes);
+
+  strToVec(formatted_attr,attributes);
+  //insert word
+  is_successful = addWord(data,formatted_attr);
+  
+  opWriteNS(clientSD, is_successful);
   
 }
 
-void CPeer::opQS(int clientSD)
+void Slave::opReadNS(int clientSD, string& data, string& attributes){
+  char* buffer;
+  int size_of_data, size_of_attributes;
+
+  buffer = new char[ACTION_SIZE+1]; //n
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  data = buffer;
+
+  delete[] buffer;
+
+  buffer = new char[ATTRIBUTE_LIST_SIZE+1];
+  read(clientSD, buffer, ATTRIBUTE_LIST_SIZE);
+  buffer[ATTRIBUTE_LIST_SIZE] = '\0';
+  size_of_attributes = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_attributes+1];
+  read(clientSD,buffer, size_of_attributes);
+  buffer[size_of_attributes] = '\0';
+  attributes = buffer;
+  delete[] buffer;
+  buffer = NULL;
+
+}
+
+void Slave::opWriteNS(int clientSD, char is_successful){
+  string protocol;
+  char* buffer;
+  protocol = ACT_RCV_N;
+  protocol += is_successful;
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
+
+  cout<<protocol<<endl;
+  write(clientSD,buffer,protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
+}
+
+void Slave::opLS(int clientSD)
+{
+  string word,word2;
+  char is_successful;
+  opReadLS(clientSD,word,word2);
+  is_successful = addRelation(word,word2);
+  opWriteLS(clientSD,is_successful);
+}
+
+void Slave::opReadLS(int clientSD, string& word, string &word2){
+  char* buffer;
+  int size_of_data;
+  
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD,buffer,ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  word = buffer;
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD,buffer,DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD,buffer,size_of_data);
+  buffer[size_of_data] = '\0';
+  word2 = buffer;
+  delete[] buffer;
+  
+  buffer = NULL;
+}
+
+void Slave::opWriteLS(int clientSD, char is_successful){
+  string protocol;
+  char* buffer;
+  
+  protocol = ACT_RCV_L;
+  protocol += is_successful;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
+
+  write(clientSD,buffer,protocol.size());
+}
+
+void Slave::opQS(int clientSD)
 {
   
 }
 
-string CPeer::opReadQS(int clientSD){
+void Slave::opReadQS(int clientSD, string word, int depth, bool attributes){
   
 }
 
-void CPeer::opWriteQS(int clientSD, string file_name){
+void Slave::opWriteQS(int clientSD, string word, int depth, bool attributes){
   
 }
 
 
-void CPeer::opPS(int clientSD)
+void Slave::opPS(int clientSD)
 {
   
 }
 
-string CPeer::opReadPS(int clientSD){
+void Slave::opReadPS(int clientSD, string words, int depth, string attribute_name){
   
 }
 
-void CPeer::opWritePS(int clientSD, string file_name){
+void Slave::opWritePS(int clientSD, string words, int depth, string attribute_name){
   
 }
 
-void CPeer::opCS(int clientSD)
+void Slave::opCS(int clientSD)
 {
   
 }
 
-string CPeer::opReadCS(int clientSD){
+void Slave::opReadCS(int clientSD, string word){
   
 }
 
-void CPeer::opWriteCS(int clientSD, string file_name){
+void Slave::opWriteCS(int clientSD, string word){
   
 }
 
+void Slave::opSS(int clientSD){
+}
 
-CPeer::~CPeer()
+void Slave::opReadSS(int clientSD){
+}
+
+void Slave::opWriteSS(int clientSD){
+}
+
+Slave::~Slave()
 {
     //dtor
 }

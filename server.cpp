@@ -153,9 +153,9 @@ void Server::listenForClients(int serverSD, char action)
     }
     if(action == ACT_RCV_N)
       std::thread(&Server::opNS,this,ConnectFD).detach();
-    /*else if(action == ACT_RCV_L)
+    else if(action == ACT_RCV_L)
       std::thread(&Server::opLS,this,ConnectFD).detach();
-    else if(action == ACT_RCV_Q)
+    /*else if(action == ACT_RCV_Q)
       std::thread(&Server::opQS,this,ConnectFD).detach();
     else if(action == ACT_RCV_P)
       std::thread(&Server::opPS,this,ConnectFD).detach();
@@ -174,100 +174,70 @@ void Server::iniClientBot()
 
 char Server::opReadN(int clientSD)
 {
-  /*char* buffer;
-  int size_of_data;
-  string data;
-  buffer = new char[ACTION_SIZE+1]; //n
+  char* buffer;
+  char is_successful;
+    
+  buffer = new char[ACTION_SIZE+1];
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
   delete[] buffer;
 
-  buffer = new char[DATA_SIZE+1];
-  read(clientSD, buffer, DATA_SIZE);
-  buffer[DATA_SIZE] = '\0';
-  size_of_data = stoi(buffer);
-  delete[] buffer;
-
-  buffer = new char[size_of_data+1];
-  read(clientSD, buffer, size_of_data);
-  buffer[size_of_data] = '\0';
-  delete[] buffer;*/
-  char* buffer;
-  char is_successful;
-  buffer = new char[ACTION_SIZE+1];
-  buffer[ACTION_SIZE] = '\0';
-  delete[] buffer;
-
   buffer = new char[SUCCESS_SIZE+1];
+  read(clientSD, buffer, SUCCESS_SIZE);
   buffer[SUCCESS_SIZE] = '\0';
   is_successful = buffer[0];
   delete[] buffer;
-  buffer = NULL;
 
   return is_successful;
 }
 
-void Server::opWriteN(int clientSD, string word, string attributes)
+void Server::opWriteN(int clientSD, string n_protocol)
 {
-  string protocol;
-  char* buffer;
-  protocol += ACT_SND_N;
-  protocol += intToStr(word.size(),DATA_SIZE);
-  protocol += word;
-  protocol += intToStr(attributes.size(),ATTRIBUTE_LIST_SIZE);
-  protocol += attributes;
-  //Colocar redundancia?
+  char buffer[n_protocol.size()];
+  n_protocol.copy(buffer,n_protocol.size(),0);
+  write(clientSD,buffer,n_protocol.size());
 
-  buffer = new char[protocol.size()];
-  write(clientSD, buffer, protocol.size());
-
-  delete[] buffer;
-  buffer = NULL;
 }
 
-char Server::opN(int clientSD, string word, string attributes)
+char Server::opN(int clientSD, string n_protocol)
 {
   char is_successful;
-  opWriteN(clientSD, word, attributes);
-  return opReadN(clientSD);
+  
+  opWriteN(clientSD, n_protocol);
+  is_successful = opReadN(clientSD);
+  return is_successful;
 }
 
+//Es el mismo codigo que opReadN...
 char Server::opReadL(int clientSD)
 {
   char* buffer;
+  char is_successful;
+    
   buffer = new char[ACTION_SIZE+1];
-  read(clientSD,buffer,ACTION_SIZE);
+  read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
   delete[] buffer;
 
   buffer = new char[SUCCESS_SIZE+1];
-  read(clientSD,buffer,SUCCESS_SIZE);
+  read(clientSD, buffer, SUCCESS_SIZE);
   buffer[SUCCESS_SIZE] = '\0';
+  is_successful = buffer[0];
   delete[] buffer;
 
-  return buffer[0];
+  return is_successful;
 }
 
-void Server::opWriteL(int clientSD, string word, string word2)
+void Server::opWriteL(int clientSD, string l_protocol)
 {
-  string protocol;
-  char* buffer;
-  protocol += ACT_SND_L;
-  protocol += intToStr(word.size(),DATA_SIZE);
-  protocol += word;
-  protocol += intToStr(word2.size(),DATA_SIZE);
-  protocol += word2;
-
-  buffer = new char[protocol.size()];
-  write(clientSD,buffer,protocol.size());
-
-  delete[] buffer;
-  buffer = NULL;
+  char buffer[l_protocol.size()];
+  l_protocol.copy(buffer,l_protocol.size(),0);
+  write(clientSD,buffer,l_protocol.size());
 }
 
-char Server::opL(int clientSD, string word, string word2)
+char Server::opL(int clientSD, string l_protocol)
 {
-  opWriteL(clientSD, word, word2);
+  opWriteL(clientSD,l_protocol);
   return opReadL(clientSD);
 }
 
@@ -283,8 +253,7 @@ void Server::opWriteQ(int clientSD, string word, int depth, bool attributes)
 
 void Server::opQ(int clientSD, string word, int depth, bool attributes)
 {
-  opWriteQ(clientSD, word, depth, attributes);
-  opReadQ(clientSD, word, depth, attributes);
+  
 }
 
 void Server::opReadP(int clientSD, string words, int depth, string attribute_name)
@@ -299,23 +268,14 @@ void Server::opWriteP(int clientSD, string words, int depth, string attribute_na
 
 void Server::opP(int clientSD, string words, int depth, string attribute_name)
 {
-
+  
 }
 
 void Server::opReadC(int clientSD, string word){
 }
 
 void Server::opWriteC(int clientSD, string word){
-  char* buffer;
-  string protocol;
-  protocol += ACT_SND_C;
-  protocol += intToStr(word.size(),DATA_SIZE);
-  protocol += word;
-
-  buffer = new char[protocol.size()];
-
-  write(clientSD,buffer,protocol.size());
-  delete[] buffer;
+  
   
 }
 
@@ -340,51 +300,60 @@ void Server::opKeep(int clientSD){
 void Server::opNS(int clientSD)
 {
   char is_successful;
+  string n_protocol;
   
-  opReadNS(clientSD);
+  opReadNS(clientSD, n_protocol);
   //insert word
-  is_successful = '1';
+
+  //Debe ser otro clientSD
+  is_successful = opN(clientSD, n_protocol);
+  
   opWriteNS(clientSD, is_successful);
   
 }
 
-string Server::opReadNS(int clientSD){
+string Server::opReadNS(int clientSD, std::string& protocol){
   char* buffer;
   int size_of_data, size_of_attributes;
   string data, attributes;
   buffer = new char[ACTION_SIZE+1]; //n
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
+  protocol = buffer;
   delete[] buffer;
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
   buffer[DATA_SIZE] = '\0';
   size_of_data = stoi(buffer);
+  protocol += buffer;
   delete[] buffer;
 
   buffer = new char[size_of_data+1];
   read(clientSD, buffer, size_of_data);
   buffer[size_of_data] = '\0';
   data = buffer;
+  protocol += buffer;
   delete[] buffer;
 
   buffer = new char[ATTRIBUTE_LIST_SIZE+1];
   read(clientSD, buffer, ATTRIBUTE_LIST_SIZE);
   buffer[ATTRIBUTE_LIST_SIZE] = '\0';
   size_of_attributes = stoi(buffer);
+  protocol += buffer;
   delete[] buffer;
 
   buffer = new char[size_of_attributes+1];
   read(clientSD,buffer, size_of_attributes);
   buffer[size_of_attributes] = '\0';
   attributes = buffer;
+  protocol += buffer;
   delete[] buffer;
   buffer = NULL;
 
   cout<<data<<endl;
   
-  return attributes;
+  return protocol;
 }
 
 void Server::opWriteNS(int clientSD, char is_successful){
@@ -404,15 +373,65 @@ void Server::opWriteNS(int clientSD, char is_successful){
 
 void Server::opLS(int clientSD)
 {
-  
+  std::string l_protocol;
+  char is_successful;
+  opReadLS(clientSD,l_protocol);
+
+  //clientSD debe ser otro.
+  is_successful = opL(clientSD,l_protocol);
+  opWriteLS(clientSD, is_successful);
 }
 
-void Server::opReadLS(int clientSD, string word, string word2, string attributes){
+void Server::opReadLS(int clientSD, std::string& l_protocol){
+  char* buffer;
+  int size_of_data;
   
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD,buffer,ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  l_protocol = buffer;
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  l_protocol += buffer;
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  l_protocol += buffer;
+  delete[] buffer;
+
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD,buffer,DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  l_protocol += buffer;
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD,buffer,size_of_data);
+  buffer[size_of_data] = '\0';
+  l_protocol += buffer;
+  delete[] buffer;
+  
+  buffer = NULL;
 }
 
-void Server::opWriteLS(int clientSD, string word, string word2, string attributes){
+void Server::opWriteLS(int clientSD, char is_successful){
+  string protocol;
+  char* buffer;
   
+  protocol = ACT_RCV_L;
+  protocol += is_successful;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
+
+  write(clientSD,buffer,protocol.size());
 }
 
 void Server::opQS(int clientSD)

@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef NODE_H
+#define NODE_H
 
 #include <vector>
 #include <string>
@@ -7,13 +7,15 @@
 class Node
 {
   private:
-    std::string data;
-    std::vector<std::string> relations;
-    std::vector<std::string> attributes;
+    std::string m_data;
+    std::vector<std::string> m_relations;
+    std::vector<std::string> m_attributes;
   public:
-    bool addRelation(std::string node, std::string relAttributes = "");
-    string doQuery(std::string msgQuery, int deep);
-    Node(std::string data, std::string relations, std::string attributes);
+    bool isInRelations(std::string node);
+    bool addRelation(std::string node);
+    std::string doQuery(std::string msgQuery, int deep);
+    Node();
+    Node(std::string data,std::vector<std::string>& attributes);
     ~Node();
 };
 #endif
