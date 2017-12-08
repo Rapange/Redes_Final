@@ -46,7 +46,7 @@ class Client
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
 	
-        void iniClientBot();
+        void iniClientBot(char action, vector<string>& arguments);
         int createClientSocket(int portNumber, string serverIP);
         int createServerSocket(int portNumber);
         

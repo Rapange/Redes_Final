@@ -45,7 +45,8 @@ class Slave
         std::string intToStr(int num, int size);
 
         
-	
+	void readAll();
+	void connectAll();
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
 	

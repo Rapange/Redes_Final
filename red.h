@@ -16,5 +16,8 @@
 #include <unistd.h>
 #include <chrono>
 #include <unordered_map>
+#include <fstream>
+#include <functional>
+
 using namespace std;
 #endif // RED_H_INCLUDED

@@ -119,6 +119,48 @@ int Server::createClientSocket(int portNumber,std::string serverIP)
   return SocketFD;
 }
 
+void Server::readAll(){
+  ifstream file;
+  string ip;
+  int port;
+  vector<pair<string,int> > machine;
+  file.open("IPs.txt");
+  if(file.is_open()){
+    while(file >> ip){
+      if(ip == "-1"){
+	m_ip_port.push_back(machine);
+	machine.clear();
+	//cout<<"PUSH ALL"<<endl;
+	continue;
+      }
+
+      file >> port;
+      cout<<ip<<" "<<port<<endl;
+      machine.push_back(make_pair(ip,port));
+      
+    }
+     
+  }
+}
+
+void Server::connectAll(){
+  readAll();
+  vector<int> sockets;
+  int my_socket;
+  for(unsigned int i = 0; i < m_ip_port.size(); i++){
+    //cout<<"line begin"<<endl;
+    for(unsigned int j = 0; j < m_ip_port[i].size(); j++){
+      my_socket =createClientSocket(m_ip_port[i][j].second, m_ip_port[i][j].first);
+      sockets.push_back(my_socket);
+      //cout<<m_ip_port[i][j].first<<" CONECTADO"<<endl;
+    }
+    m_sockets.push_back(sockets);
+    sockets.clear();
+  }
+  
+  return;
+}
+
 void Server::iniServerBot()
 {
   
@@ -169,6 +211,7 @@ void Server::listenForClients(int serverSD, char action)
 
 void Server::iniClientBot()
 {
+  connectAll();
   while(true);
 }
 
@@ -202,8 +245,10 @@ void Server::opWriteN(int clientSD, string n_protocol)
 char Server::opN(int clientSD, string n_protocol)
 {
   char is_successful;
-  
+
+  cout<<"Se escribe"<<endl;
   opWriteN(clientSD, n_protocol);
+  cout<<"Se recibe"<<endl;
   is_successful = opReadN(clientSD);
   return is_successful;
 }
@@ -232,11 +277,14 @@ void Server::opWriteL(int clientSD, string l_protocol)
 {
   char buffer[l_protocol.size()];
   l_protocol.copy(buffer,l_protocol.size(),0);
+  //cout<<"SE envia: "<<buffer<<endl;
   write(clientSD,buffer,l_protocol.size());
 }
 
-char Server::opL(int clientSD, string l_protocol)
+char Server::opL(int clientSD, string l_protocol, char reverse)
 {
+  l_protocol += reverse;
+  cout<<"l protocolo "<<l_protocol<<endl;
   opWriteL(clientSD,l_protocol);
   return opReadL(clientSD);
 }
@@ -301,26 +349,61 @@ void Server::opNS(int clientSD)
 {
   char is_successful;
   string n_protocol;
+  char buffer[ACTION_SIZE+1];
+  int pos, pos_2, current_socket;
+
+  read(clientSD,buffer,ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  n_protocol = buffer;
+  cout<<"protocolo a usar: "<<buffer<<endl;
   
-  opReadNS(clientSD, n_protocol);
+  if(buffer[0] == ACT_SND_S || buffer[0] == ACT_SND_C){
+  }
+  else{
+    if(buffer[0] == ACT_SND_N){
+      cout<<"ES N"<<endl;
+      opReadNS(clientSD, n_protocol, pos);
+      for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
+	cout<<"Sending request N to: "<< m_ip_port[pos][i].second <<endl;
+	current_socket = m_sockets[pos][i];
+	is_successful = opN(current_socket, n_protocol);
+      }
+      opWriteNS(clientSD, is_successful);
+    }
+    if(buffer[0] == ACT_SND_L){
+      cout<<"ES L"<<endl;
+      opReadLS(clientSD, n_protocol, pos, pos_2);
+      for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
+	cout<<"Sending request L1 to: "<< m_ip_port[pos][i].second << endl;
+	current_socket = m_sockets[pos][i];
+	is_successful = opL(current_socket, n_protocol, '0');
+      }
+
+      if(is_successful == '1'){
+	for(unsigned int i = 0; i < m_sockets[pos_2].size(); i++){
+	  cout<<"Sending request L2 to: "<< m_ip_port[pos_2][i].second << endl;
+	  current_socket = m_sockets[pos_2][i];
+	  is_successful = opL(current_socket, n_protocol, '1');
+	}
+      }
+      opWriteLS(clientSD, is_successful);
+    }
+  }
+  
   //insert word
 
   //Debe ser otro clientSD
-  is_successful = opN(clientSD, n_protocol);
   
-  opWriteNS(clientSD, is_successful);
+  
+  
   
 }
 
-string Server::opReadNS(int clientSD, std::string& protocol){
+string Server::opReadNS(int clientSD, std::string& protocol, int &pos){
   char* buffer;
   int size_of_data, size_of_attributes;
   string data, attributes;
-  buffer = new char[ACTION_SIZE+1]; //n
-  read(clientSD, buffer, ACTION_SIZE);
-  buffer[ACTION_SIZE] = '\0';
-  protocol = buffer;
-  delete[] buffer;
+  
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
@@ -333,6 +416,10 @@ string Server::opReadNS(int clientSD, std::string& protocol){
   read(clientSD, buffer, size_of_data);
   buffer[size_of_data] = '\0';
   data = buffer;
+
+  size_t str_hash = (hash<string>{}(data) % (m_sockets.size()-1)) + 1;
+  cout<<str_hash<<endl;
+  pos = str_hash;
   protocol += buffer;
   delete[] buffer;
 
@@ -373,24 +460,19 @@ void Server::opWriteNS(int clientSD, char is_successful){
 
 void Server::opLS(int clientSD)
 {
-  std::string l_protocol;
+  /*std::string l_protocol;
   char is_successful;
   opReadLS(clientSD,l_protocol);
 
   //clientSD debe ser otro.
   is_successful = opL(clientSD,l_protocol);
-  opWriteLS(clientSD, is_successful);
+  opWriteLS(clientSD, is_successful);*/
 }
 
-void Server::opReadLS(int clientSD, std::string& l_protocol){
+void Server::opReadLS(int clientSD, std::string& l_protocol, int &pos, int &pos_2){
   char* buffer;
   int size_of_data;
-  
-  buffer = new char[ACTION_SIZE+1];
-  read(clientSD,buffer,ACTION_SIZE);
-  buffer[ACTION_SIZE] = '\0';
-  l_protocol = buffer;
-  delete[] buffer;
+  string data_1, data_2;
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
@@ -402,6 +484,7 @@ void Server::opReadLS(int clientSD, std::string& l_protocol){
   buffer = new char[size_of_data+1];
   read(clientSD, buffer, size_of_data);
   buffer[size_of_data] = '\0';
+  data_1 = buffer;
   l_protocol += buffer;
   delete[] buffer;
 
@@ -415,10 +498,14 @@ void Server::opReadLS(int clientSD, std::string& l_protocol){
   buffer = new char[size_of_data+1];
   read(clientSD,buffer,size_of_data);
   buffer[size_of_data] = '\0';
+  data_2 = buffer;
   l_protocol += buffer;
   delete[] buffer;
   
   buffer = NULL;
+
+  pos = (hash<string>{}(data_1) % (m_sockets.size()-1)) + 1;
+  pos_2 = (hash<string>{}(data_2) % (m_sockets.size()-1)) + 1;
 }
 
 void Server::opWriteLS(int clientSD, char is_successful){
@@ -427,6 +514,7 @@ void Server::opWriteLS(int clientSD, char is_successful){
   
   protocol = ACT_RCV_L;
   protocol += is_successful;
+  cout<<"Enviando protocolo resultado: "<<protocol<<endl;
 
   buffer = new char[protocol.size()];
   protocol.copy(buffer,protocol.size(),0);

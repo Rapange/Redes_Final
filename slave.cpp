@@ -1,7 +1,7 @@
 #include "slave.h"
 #include "node.h"
 
-Slave::Slave(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port)
+Slave::Slave(int n_port, int l_port, int q_port, int c_port, int p_port, int s_port, int keepAlive_port)
 {
   m_n_port = n_port;
   m_l_port = l_port;
@@ -26,7 +26,47 @@ std::string Slave::intToStr(int num, int size){
 }
 
 
+void Slave::readAll(){
+  ifstream file;
+  string ip;
+  int port;
+  vector<pair<string,int> > machine;
+  file.open("IPs.txt");
+  if(file.is_open()){
+    while(file >> ip){
+      if(ip == "-1"){
+	m_ip_port.push_back(machine);
+	machine.clear();
+	//cout<<"PUSH ALL"<<endl;
+	continue;
+      }
 
+      file >> port;
+      cout<<ip<<" "<<port<<endl;
+      machine.push_back(make_pair(ip,port));
+      
+    }
+     
+  }
+}
+
+void Slave::connectAll(){
+  readAll();
+  vector<int> sockets;
+  int my_socket;
+  for(unsigned int i = 0; i < m_ip_port.size(); i++){
+    //cout<<"line begin"<<endl;
+    for(unsigned int j = 0; j < m_ip_port[i].size(); j++){
+      my_socket =createClientSocket(m_ip_port[i][j].second, m_ip_port[i][j].first);
+      sockets.push_back(my_socket);
+      //cout<<m_ip_port[i][j].first<<" CONECTADO"<<endl;
+    }
+    m_sockets.push_back(sockets);
+    sockets.clear();
+  }
+  
+  return;
+}
 
 
 int Slave::createServerSocket(int portNumber)
@@ -188,6 +228,11 @@ void Slave::strToVec(std::vector<std::string>& formatted_string, std::string& no
 
 char Slave::addWord(std::string data, std::vector<std::string>& attributes){
   if(m_words[data]) return '0';
+  cout<<"Attributes: "<<endl;
+  for(unsigned int i = 0; i < attributes.size(); i++){
+    cout<<attributes[i]<<" ";
+  }
+  cout<<endl;
   m_words[data] = new Node(data,attributes);
   /*Aqui se escribe en el archivo*/
   return '1';
@@ -201,6 +246,7 @@ char Slave::addRelation(std::string data_from, std::string data_to){
 
 void Slave::iniClientBot()
 {
+  connectAll();
   while(true);
 }
 
@@ -293,17 +339,40 @@ void Slave::opKeep(int clientSD){
 
 void Slave::opNS(int clientSD)
 {
-  char is_successful;
-  std::string data, attributes;
-  std::vector<std::string> formatted_attr;
-  
-  opReadNS(clientSD,data,attributes);
+  while(true){
+    char is_successful;
+    char buffer[ACTION_SIZE+1];
+    string protocol;
+    std::string data, data_2, attributes;
+    std::vector<std::string> formatted_attr;
 
-  strToVec(formatted_attr,attributes);
-  //insert word
-  is_successful = addWord(data,formatted_attr);
+    cout<<"Inicializacion"<<endl;
+    read(clientSD,buffer,ACTION_SIZE);
+    buffer[ACTION_SIZE+1] = '\0';
+
+    protocol = buffer;
+    cout<<"Termino inicializacion"<<endl;
   
-  opWriteNS(clientSD, is_successful);
+    if(buffer[0] == ACT_SND_N){
+      cout<<"Se agrega N"<<endl;
+      opReadNS(clientSD,data,attributes);
+
+      strToVec(formatted_attr,attributes);
+      //insert word
+      is_successful = addWord(data,formatted_attr);
+      cout<<"Se agrego: "<<data<<" "<<is_successful<<endl;
+      opWriteNS(clientSD, is_successful);
+    }
+    else if(buffer[0] == ACT_SND_L){
+      cout<<"Se agrega L"<<endl;
+      opReadLS(clientSD,data,data_2);
+
+      is_successful = addRelation(data,data_2);
+      cout<<"Se agrego enlace: "<<data<<" "<<data_2<<" "<<is_successful<<endl;
+      opWriteLS(clientSD, is_successful);
+    }
+  }
+  
   
 }
 
@@ -311,10 +380,6 @@ void Slave::opReadNS(int clientSD, string& data, string& attributes){
   char* buffer;
   int size_of_data, size_of_attributes;
 
-  buffer = new char[ACTION_SIZE+1]; //n
-  read(clientSD, buffer, ACTION_SIZE);
-  buffer[ACTION_SIZE] = '\0';
-  delete[] buffer;
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
@@ -371,11 +436,6 @@ void Slave::opLS(int clientSD)
 void Slave::opReadLS(int clientSD, string& word, string &word2){
   char* buffer;
   int size_of_data;
-  
-  buffer = new char[ACTION_SIZE+1];
-  read(clientSD,buffer,ACTION_SIZE);
-  buffer[ACTION_SIZE] = '\0';
-  delete[] buffer;
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
@@ -399,6 +459,17 @@ void Slave::opReadLS(int clientSD, string& word, string &word2){
   read(clientSD,buffer,size_of_data);
   buffer[size_of_data] = '\0';
   word2 = buffer;
+  delete[] buffer;
+
+  cout<<"Se lee reverse"<<endl;
+  
+  buffer = new char[2];
+  read(clientSD,buffer,1);
+  buffer[1] = '\0';
+  cout<<"Reverse: "<<buffer<<endl;
+  if(buffer[0] == '1'){
+    swap(word,word2);
+  }
   delete[] buffer;
   
   buffer = NULL;

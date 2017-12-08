@@ -131,26 +131,41 @@ void Client::listenForClients(int serverSD, char action)
   
 }
 
-void Client::iniClientBot()
+void Client::iniClientBot(char action, vector<string> &arguments)
 {
   int port;
   string Ip;
-  string command;
+  string word_1, word_2;
+  string attr;
   int query_N;
   char is_successful;
-  cout<<"Ingrese direccion IP del maestro: ";
-  cin>>Ip;
+  ifstream file;
+  file.open("IPs_client.txt");
+  if(file.is_open()){
+    file >> Ip;
+    file >> m_n_port;
+  }
+  
   
   query_N = createClientSocket(m_n_port,Ip);
-  while(true){
-    cin>>command;
-    if(command[0] == 'N'){
-      cout<<"Se agrega la palabra test"<<endl;
-      is_successful = opN(query_N,"test","");
-      if(is_successful == '1') cout<<"Palabra agregada"<<endl;
-      else cout<<"ERROR"<<endl;
+  if(action == ACT_SND_N){
+    word_1 = arguments[0];
+    for(unsigned int i = 1; i < arguments.size(); i+=3){
+      attr += arguments[i+2] + ",";
     }
+    is_successful = opN(query_N,word_1,attr);
+    
   }
+  else if(action == ACT_SND_L){
+    cout<<"ES L"<<endl;
+    word_1 = arguments[0];
+    word_2 = arguments[1];
+    is_successful = opL(query_N,word_1,word_2);
+  }
+
+  if(is_successful == '1') cout<<"Operacion exitosa"<<endl;
+  else cout<<"ERROR"<<endl;
+  
 }
 
 char Client::opReadN(int clientSD)
@@ -204,6 +219,7 @@ char Client::opN(int clientSD, string word, string attributes)
 char Client::opReadL(int clientSD)
 {
   char* buffer;
+  char is_successful;
   buffer = new char[ACTION_SIZE+1];
   read(clientSD,buffer,ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
@@ -212,9 +228,10 @@ char Client::opReadL(int clientSD)
   buffer = new char[SUCCESS_SIZE+1];
   read(clientSD,buffer,SUCCESS_SIZE);
   buffer[SUCCESS_SIZE] = '\0';
+  is_successful = buffer[0];
   delete[] buffer;
 
-  return buffer[0];
+  return is_successful;
 }
 
 void Client::opWriteL(int clientSD, string word, string word2)
@@ -228,6 +245,7 @@ void Client::opWriteL(int clientSD, string word, string word2)
   protocol += word2;
 
   buffer = new char[protocol.size()];
+  protocol.copy(buffer,protocol.size(),0);
   write(clientSD,buffer,protocol.size());
 
   delete[] buffer;

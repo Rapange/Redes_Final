@@ -42,7 +42,8 @@ class Server
 
         std::string intToStr(int num, int size);
 
-        
+        void readAll();
+	void connectAll();
 	
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
@@ -59,7 +60,7 @@ class Server
 
 	char opReadL(int clientSD);
         void opWriteL(int clientSD, string l_protocol);
-        char opL(int clientSD, string l_protocol);
+        char opL(int clientSD, string l_protocol, char reverse);
 
 	void opReadQ(int clientSD, string word, int depth, bool attributes);
         void opWriteQ(int clientSD, string word, int depth, bool attributes);
@@ -80,11 +81,11 @@ class Server
 	//Server side
 
 	void opNS(int clientSD);
-	string opReadNS(int clientSD, std::string& n_protocol);
+	string opReadNS(int clientSD, std::string& n_protocol, int& pos);
 	void opWriteNS(int clientSD, char is_successful);
 
 	void opLS(int clientSD);
-	void opReadLS(int clientSD, std::string& l_protocol);
+	void opReadLS(int clientSD, std::string& l_protocol, int& pos, int& pos_2);
 	void opWriteLS(int clientSD, char is_successful);
 
 	void opQS(int clientSD);
