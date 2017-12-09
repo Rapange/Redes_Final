@@ -2,14 +2,18 @@
 #include <iostream>
 
 int main(){
-  int mainPortNumber,CheckPortNumber;
-  cout<<"Ingrese puerto check";
-  cin>>CheckPortNumber;
+  int mainPortNumber,checkPortNumber;
 
-  //Server slaveserver(40010,CheckPortNumber);
+  cout<<"Ingrese puerto main";
+  cin>>mainPortNumber;
+
+  cout<<"Ingrese puerto check";
+  cin>>checkPortNumber;
+
+  //Server slaveserver(mainPortNumber,checkPortNumber);
   //slaveserver.iniSlaveCheckBot();
 
-  Server mainserver(40012,CheckPortNumber);
+  Server mainserver(mainPortNumber,checkPortNumber);
   mainserver.iniMasterCheckBot();
 
   return 0;

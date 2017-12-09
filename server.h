@@ -28,6 +28,7 @@ class Server
 {
   public:
     int mainPort,checkPort;
+    vector<int> ports;
     Server(int mainPort, int checkPort);
     virtual ~Server();
     void iniMasterCheckBot();
