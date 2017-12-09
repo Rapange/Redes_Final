@@ -3,28 +3,6 @@
 
 #include "red.h"
 #include "node.h"
-#define ACTION_SIZE 1
-#define DATA_SIZE 3
-#define ATTRIBUTE_LIST_SIZE 4
-#define DATA_LIST_SIZE 4
-#define RESPONSE_SIZE 4
-#define ATTRIBUTE_SIZE 2
-#define REDUNDANCE_SIZE 2
-#define USE_SIZE 1
-#define SUCCESS_SIZE 1
-
-#define ACT_SND_N 'N'
-#define ACT_RCV_N 'n'
-#define ACT_SND_L 'L'
-#define ACT_RCV_L 'l'
-#define ACT_SND_Q 'Q' //Receive query Action
-#define ACT_RCV_Q 'q' //Send query Action
-#define ACT_SND_P 'P'
-#define ACT_RCV_P 'p'
-#define ACT_SND_C 'C'
-#define ACT_RCV_C 'c'
-#define ACT_SND_S 'S'
-#define ACT_RCV_S 's'
 
 
 class Slave
@@ -34,6 +12,7 @@ class Slave
   int m_n_port, m_l_port, m_q_port, m_p_port, m_c_port, m_s_port, m_keepAlive_port;
   
        int state;
+       mutex mtx;
 	int id;
 	std::vector< std::vector< std::pair < std::string, int > > > m_ip_port;
         std::vector< std::vector< int > > m_sockets;
@@ -47,6 +26,8 @@ class Slave
         
 	void readAll();
 	void connectAll();
+	
+	
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
 	
@@ -68,8 +49,8 @@ class Slave
         void opWriteL(int clientSD, string word, string word2);
         char opL(int clientSD, string word, string word2);
 
-	void opReadQ(int clientSD, string word, int depth, bool attributes);
-        void opWriteQ(int clientSD, string word, int depth, bool attributes);
+	string opReadQ(int clientSD);
+        void opWriteQ(int clientSD, string word, int depth, char get_attributes);
 	void opQ(int clientSD, string word, int depth, bool attributes);
 
 	void opReadP(int clientSD, string words, int depth, string attribute_name);
@@ -86,6 +67,9 @@ class Slave
 
 	//Server side
 
+	string formatResult(string word, char get_attributes);
+	void doAllQuery(int clientSD, string word, int depth, char get_attributes);
+
 	void opNS(int clientSD);
 	void opReadNS(int clientSD, string& data, string& attributes);
 	void opWriteNS(int clientSD, char is_successful);
@@ -95,8 +79,8 @@ class Slave
 	void opWriteLS(int clientSD, char is_successful);
 
 	void opQS(int clientSD);
-	void opReadQS(int clientSD, string word, int depth, bool attributes);
-	void opWriteQS(int clientSD, string word, int depth, bool attributes);
+	void opReadQS(int clientSD, string &word, int &depth, char &get_attributes);
+	void opWriteQS(int clientSD, string result);
 
 	void opPS(int clientSD);
 	void opReadPS(int clientSD, string words, int depth, string attribute_name);

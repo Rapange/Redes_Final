@@ -281,14 +281,57 @@ char Slave::opL(int clientSD, string word, string word2)
   
 }
 
-void Slave::opReadQ(int clientSD, string word, int depth, bool attributes)
+string Slave::opReadQ(int clientSD)
 {
- 
+  char* buffer;
+  int size_of_response;
+  string result;
+
+  //mtx.lock();
+  
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  cout<<buffer<<endl;
+  delete[] buffer;
+  
+  buffer = new char[RESPONSE_SIZE+1];
+  read(clientSD, buffer, RESPONSE_SIZE);
+  buffer[RESPONSE_SIZE] = '\0';
+  cout<<buffer<<endl;
+  size_of_response = stoi(buffer);
+  delete[] buffer;
+  
+  buffer = new char[size_of_response+1];
+  read(clientSD, buffer, size_of_response);
+  buffer[size_of_response] = '\0';
+  cout<<buffer<<endl;
+  result = buffer;
+
+  delete[] buffer;
+  buffer= NULL;
+
+  //mtx.unlock();
+
+  return result;
 }
 
-void Slave::opWriteQ(int clientSD, string word, int depth, bool attributes)
+void Slave::opWriteQ(int clientSD, string word, int depth, char attributes)
 {
-  
+  string protocol;
+  char* buffer;
+  protocol = ACT_SND_Q;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(depth, DEPTH_SIZE);
+  protocol += attributes;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+
+  //mtx.lock();
+  write(clientSD, buffer, protocol.size());
+  //mtx.unlock();
 }
 
 void Slave::opQ(int clientSD, string word, int depth, bool attributes)
@@ -337,19 +380,71 @@ void Slave::opKeep(int clientSD){
 
 //Slave side
 
+string Slave::formatResult(string word, char get_attributes){
+  string result;
+  result = word;
+  if(get_attributes == '1'){
+    for(unsigned int i = 0; i < m_words[word]->m_attributes.size(); i++){
+      result += ",";
+      result += m_words[word]->m_attributes[i] ;
+    }
+  }
+  result += ";";
+  return result;
+}
+
+void Slave::doAllQuery(int clientSD, string word, int depth, char get_attributes){
+  string result, current_word;
+  int pos, current_socket;
+  result = formatResult(word, get_attributes);
+  cout<<"primer results. "<<result<<endl;
+  if(depth == 0){
+    cout<<"my result: "<<result << endl;
+  }
+  else{
+    for(unsigned int i = 0; i < m_words[word]->m_relations.size(); i++){
+      current_word = m_words[word]->m_relations[i];
+      pos = (hash<string>{}(current_word) % (m_sockets.size() - 1)) + 1;
+      current_socket = m_sockets[pos][0];
+
+      //mtx.lock();
+      opWriteQ(current_socket, current_word, depth - 1, get_attributes);
+      //mtx.unlock();
+    }
+
+    for(unsigned int i = 0; i < m_words[word]->m_relations.size(); i++){
+      current_word = m_words[word]->m_relations[i];
+      pos = (hash<string>{}(current_word) % (m_sockets.size() - 1)) + 1;
+      current_socket = m_sockets[pos][0];
+
+      //mtx.lock();
+      result += opReadQ(current_socket);
+      //mtx.unlock();
+    }
+    
+  }
+  //mtx.lock();
+  opWriteQS(clientSD, result);
+  //mtx.unlock();
+}
+
 void Slave::opNS(int clientSD)
 {
   while(true){
-    char is_successful;
+    char is_successful, get_attributes;
     char buffer[ACTION_SIZE+1];
+    int depth;
     string protocol;
     std::string data, data_2, attributes;
     std::vector<std::string> formatted_attr;
 
     cout<<"Inicializacion"<<endl;
+    //mtx.lock();
     read(clientSD,buffer,ACTION_SIZE);
+    //mtx.unlock();
     buffer[ACTION_SIZE+1] = '\0';
 
+    
     protocol = buffer;
     cout<<"Termino inicializacion"<<endl;
   
@@ -370,6 +465,16 @@ void Slave::opNS(int clientSD)
       is_successful = addRelation(data,data_2);
       cout<<"Se agrego enlace: "<<data<<" "<<data_2<<" "<<is_successful<<endl;
       opWriteLS(clientSD, is_successful);
+    }
+
+    else if(buffer[0] == ACT_SND_Q){
+      cout<<"Se lee Q"<<endl;
+      //mtx.lock();
+      opReadQS(clientSD, data, depth, get_attributes);
+      //mtx.unlock();
+      cout<<"se busca palabra, profundidad, attributes: "<<data<<" "<<depth<<" "<<get_attributes<<endl;
+      //thread(&Slave::doAllQuery,this,clientSD, data, depth,get_attributes).detach();
+      doAllQuery(clientSD,data,depth,get_attributes);
     }
   }
   
@@ -493,12 +598,52 @@ void Slave::opQS(int clientSD)
   
 }
 
-void Slave::opReadQS(int clientSD, string word, int depth, bool attributes){
+void Slave::opReadQS(int clientSD, string &word, int &depth, char &get_attributes){
+  char* buffer;
+  int size_of_data;
   
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  word = buffer;
+  delete[] buffer;
+
+  buffer = new char[DEPTH_SIZE+1];
+  read(clientSD, buffer, DEPTH_SIZE);
+  buffer[DEPTH_SIZE] = '\0';
+  depth = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[1+1];
+  read(clientSD, buffer, 1);
+  buffer[1] = '\0';
+  get_attributes = buffer[0];
+  delete[] buffer;
+
+  buffer = NULL;
 }
 
-void Slave::opWriteQS(int clientSD, string word, int depth, bool attributes){
-  
+void Slave::opWriteQS(int clientSD, string result){
+  string protocol;
+  char* buffer;
+  protocol = ACT_RCV_Q;
+  protocol += intToStr(result.size(), RESPONSE_SIZE);
+  protocol += result;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+  //mtx.lock();
+  write(clientSD, buffer, protocol.size());
+  //mtx.unlock();
+
+  delete[] buffer;
+  buffer = NULL;
 }
 
 

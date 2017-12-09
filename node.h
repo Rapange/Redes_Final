@@ -6,7 +6,7 @@
 
 class Node
 {
-  private:
+  public:
     std::string m_data;
     std::vector<std::string> m_relations;
     std::vector<std::string> m_attributes;

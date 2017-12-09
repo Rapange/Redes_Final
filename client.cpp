@@ -136,9 +136,9 @@ void Client::iniClientBot(char action, vector<string> &arguments)
   int port;
   string Ip;
   string word_1, word_2;
-  string attr;
-  int query_N;
-  char is_successful;
+  string attr, result;
+  int query_N, depth;
+  char is_successful, get_attributes;
   ifstream file;
   file.open("IPs_client.txt");
   if(file.is_open()){
@@ -154,17 +154,28 @@ void Client::iniClientBot(char action, vector<string> &arguments)
       attr += arguments[i+2] + ",";
     }
     is_successful = opN(query_N,word_1,attr);
-    
+    if(is_successful == '1') cout<<"Operacion exitosa"<<endl;
+    else cout<<"ERROR"<<endl;
   }
   else if(action == ACT_SND_L){
     cout<<"ES L"<<endl;
     word_1 = arguments[0];
     word_2 = arguments[1];
     is_successful = opL(query_N,word_1,word_2);
+    if(is_successful == '1') cout<<"Operacion exitosa"<<endl;
+    else cout<<"ERROR"<<endl;
   }
 
-  if(is_successful == '1') cout<<"Operacion exitosa"<<endl;
-  else cout<<"ERROR"<<endl;
+  else if(action == ACT_SND_Q){
+    cout<<"ES Q"<<endl;
+    word_1 = arguments[0];
+    depth = 1;
+    get_attributes = '0';
+    if(arguments.size() > 0) depth = stoi(arguments[1]);
+    if(arguments.size() > 1) get_attributes = '1';
+    result = opQ(query_N,word_1,depth,get_attributes);
+    cout<<result<<endl;
+  }
   
 }
 
@@ -258,20 +269,56 @@ char Client::opL(int clientSD, string word, string word2)
   return opReadL(clientSD);
 }
 
-void Client::opReadQ(int clientSD, string word, int depth, bool attributes)
+string Client::opReadQ(int clientSD)
 {
- 
-}
+  char* buffer;
+  int size_of_response;
+  string response;
 
-void Client::opWriteQ(int clientSD, string word, int depth, bool attributes)
-{
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+  
+  buffer = new char[RESPONSE_SIZE+1];
+  read(clientSD, buffer, RESPONSE_SIZE);
+  buffer[RESPONSE_SIZE] = '\0';
+  size_of_response = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_response+1];
+  read(clientSD, buffer, size_of_response);
+  buffer[size_of_response] = '\0';
+  response = buffer;
+  delete[] buffer;
+
+  return response;
   
 }
 
-void Client::opQ(int clientSD, string word, int depth, bool attributes)
+void Client::opWriteQ(int clientSD, string word, int depth, char attributes)
+{
+  string protocol;
+  char* buffer;
+  protocol = ACT_SND_Q;
+  protocol += intToStr(word.size(),DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(depth, DEPTH_SIZE);
+  protocol += attributes;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+  cout<<"enviando protocolo: "<<protocol<<endl;
+  write(clientSD, buffer, protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
+}
+
+string Client::opQ(int clientSD, string word, int depth, char attributes)
 {
   opWriteQ(clientSD, word, depth, attributes);
-  opReadQ(clientSD, word, depth, attributes);
+  return opReadQ(clientSD);
 }
 
 void Client::opReadP(int clientSD, string words, int depth, string attribute_name)
