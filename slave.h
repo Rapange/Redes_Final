@@ -87,8 +87,8 @@ class Slave
 	void opWritePS(int clientSD, string words, int depth, string attribute_name);
 
 	void opCS(int clientSD);
-	void opReadCS(int clientSD, string word);
-	void opWriteCS(int clientSD, string word);
+	void opReadCS(int clientSD, string& word);
+	void opWriteCS(int clientSD, char found);
 	
         void opSS(int clientSD);
 	void opReadSS(int clientSD);

@@ -211,6 +211,7 @@ void Slave::listenForClients(int serverSD, char action)
 //str1,str2,str3
 void Slave::strToVec(std::vector<std::string>& formatted_string, std::string& normal_string){
   std::string holder_string;
+  cout<<"mis atributos: "<<normal_string<<endl;
   for(unsigned int i = 0; i < normal_string.size(); i++){
     if(normal_string[i] != ','){
       holder_string += normal_string[i];
@@ -382,6 +383,7 @@ void Slave::opKeep(int clientSD){
 
 string Slave::formatResult(string word, char get_attributes){
   string result;
+  if(!m_words[word]) return "";
   result = word;
   if(get_attributes == '1'){
     for(unsigned int i = 0; i < m_words[word]->m_attributes.size(); i++){
@@ -402,6 +404,7 @@ void Slave::doAllQuery(int clientSD, string word, int depth, char get_attributes
     cout<<"my result: "<<result << endl;
   }
   else{
+    mtx.lock();
     for(unsigned int i = 0; i < m_words[word]->m_relations.size(); i++){
       current_word = m_words[word]->m_relations[i];
       pos = (hash<string>{}(current_word) % (m_sockets.size() - 1)) + 1;
@@ -411,7 +414,10 @@ void Slave::doAllQuery(int clientSD, string word, int depth, char get_attributes
       opWriteQ(current_socket, current_word, depth - 1, get_attributes);
       //mtx.unlock();
     }
+    mtx.unlock();
 
+    /*
+    //mtx.lock();
     for(unsigned int i = 0; i < m_words[word]->m_relations.size(); i++){
       current_word = m_words[word]->m_relations[i];
       pos = (hash<string>{}(current_word) % (m_sockets.size() - 1)) + 1;
@@ -421,10 +427,12 @@ void Slave::doAllQuery(int clientSD, string word, int depth, char get_attributes
       result += opReadQ(current_socket);
       //mtx.unlock();
     }
-    
+    //mtx.unlock();
+    */
   }
   //mtx.lock();
-  opWriteQS(clientSD, result);
+  cout<<"Escfibo a master"<<endl;
+  opWriteQS(m_sockets[0][0], result);
   //mtx.unlock();
 }
 
@@ -473,8 +481,16 @@ void Slave::opNS(int clientSD)
       opReadQS(clientSD, data, depth, get_attributes);
       //mtx.unlock();
       cout<<"se busca palabra, profundidad, attributes: "<<data<<" "<<depth<<" "<<get_attributes<<endl;
-      //thread(&Slave::doAllQuery,this,clientSD, data, depth,get_attributes).detach();
-      doAllQuery(clientSD,data,depth,get_attributes);
+      thread(&Slave::doAllQuery,this,clientSD, data, depth,get_attributes).detach();
+      //doAllQuery(clientSD,data,depth,get_attributes);
+    }
+    else if(buffer[0] == ACT_SND_C){
+      cout<<"Se lee C"<<endl;
+
+      opReadCS(clientSD, data);
+      if(!m_words[data]) opWriteCS(clientSD, '0');
+      else opWriteCS(clientSD, '1');
+      
     }
   }
   
@@ -665,12 +681,39 @@ void Slave::opCS(int clientSD)
   
 }
 
-void Slave::opReadCS(int clientSD, string word){
+void Slave::opReadCS(int clientSD, string& word){
+  char* buffer;
+  int size_of_data;
   
+  buffer = new char[DATA_SIZE+1];
+  read(clientSD, buffer, DATA_SIZE);
+  buffer[DATA_SIZE] = '\0';
+  cout<<buffer<<endl;
+  size_of_data = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data+1];
+  read(clientSD, buffer, size_of_data);
+  buffer[size_of_data] = '\0';
+  word = buffer;
+  cout<<word<<endl;
+  delete[] buffer;
+  buffer = NULL;
 }
 
-void Slave::opWriteCS(int clientSD, string word){
-  
+void Slave::opWriteCS(int clientSD, char found){
+  string protocol;
+  char* buffer;
+  protocol = ACT_RCV_C;
+  protocol += found;
+
+  buffer = new char[protocol.size()];
+
+  protocol.copy(buffer, protocol.size(), 0);
+  write(clientSD, buffer, protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
 }
 
 void Slave::opSS(int clientSD){

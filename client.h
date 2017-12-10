@@ -46,9 +46,13 @@ class Client
         void opWriteP(int clientSD, string words, int depth, string attribute_name);
 	void opP(int clientSD, string words, int depth, string attribute_name);
 
-	void opReadC(int clientSD, string word);
+	void opReadC(int clientSD, string &ip_list, int &redundance, char& use);
         void opWriteC(int clientSD, string word);
 	void opC(int clientSD, string word);
+
+	void opReadS(int clientSD, string &result);
+	void opWriteS(int clientSD);
+	void opS(int clientSD);
 	
 	void opReadKeep(int clientSD); //Keep Alive operation
         void opWriteKeep(int clientSD);

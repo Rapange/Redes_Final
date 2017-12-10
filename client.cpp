@@ -136,9 +136,9 @@ void Client::iniClientBot(char action, vector<string> &arguments)
   int port;
   string Ip;
   string word_1, word_2;
-  string attr, result;
-  int query_N, depth;
-  char is_successful, get_attributes;
+  string attr, result, ip_list;
+  int query_N, depth, redundance;
+  char is_successful, get_attributes, use;
   ifstream file;
   file.open("IPs_client.txt");
   if(file.is_open()){
@@ -171,9 +171,28 @@ void Client::iniClientBot(char action, vector<string> &arguments)
     word_1 = arguments[0];
     depth = 1;
     get_attributes = '0';
-    if(arguments.size() > 0) depth = stoi(arguments[1]);
-    if(arguments.size() > 1) get_attributes = '1';
-    result = opQ(query_N,word_1,depth,get_attributes);
+    if(arguments.size() > 1) depth = stoi(arguments[1]);
+    if(arguments.size() > 2) get_attributes = '1';
+    //cout<<"Se envian: "<<get_attributes<<endl;
+    opWriteQ(query_N, word_1, depth, get_attributes);
+    while(true){
+      result = opReadQ(query_N);
+      cout<<result<<endl;
+    }
+  }
+  else if(action == ACT_SND_C){
+    cout<<"Es C"<<endl;
+    word_1 = arguments[0];
+    opWriteC(query_N, word_1);
+    opReadC(query_N, ip_list, redundance, use);
+    cout<<ip_list<<endl<<redundance<<endl<<use<<endl;
+    
+  }
+  else if(action == ACT_SND_S){
+    cout<<"Es S"<<endl;
+    opWriteS(query_N);
+    cout<<"Waiting..."<<endl;
+    opReadS(query_N, result);
     cout<<result<<endl;
   }
   
@@ -199,6 +218,43 @@ char Client::opReadN(int clientSD)
   cout<<is_successful<<endl;
 
   return is_successful;
+}
+
+void Client::opWriteS(int clientSD){
+  string protocol;
+  char* buffer;
+  protocol = ACT_SND_S;
+
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(),0);
+
+  write(clientSD, buffer, protocol.size());
+
+  delete[] buffer;
+  buffer = NULL;
+}
+void Client::opReadS(int clientSD, string &result){
+  char* buffer;
+  int size_of_response;
+  
+  buffer= new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer =  new char[RESPONSE_SIZE+1];
+  read(clientSD, buffer, RESPONSE_SIZE);
+  buffer[RESPONSE_SIZE] = '\0';
+  size_of_response = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_response+1];
+  read(clientSD, buffer, size_of_response);
+  buffer[size_of_response] = '\0';
+  result = buffer;
+  delete[] buffer;
+
+  return;
 }
 
 void Client::opWriteN(int clientSD, string word, string attributes)
@@ -336,20 +392,54 @@ void Client::opP(int clientSD, string words, int depth, string attribute_name)
 
 }
 
-void Client::opReadC(int clientSD, string word){
+void Client::opReadC(int clientSD, string &ip_list, int &redundance, char &use){
+  char* buffer;
+  int size_of_ip_list = 0;
+  
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+  
+  buffer = new char[IP_LIST_SIZE+1];
+  read(clientSD, buffer, IP_LIST_SIZE);
+  buffer[IP_LIST_SIZE] = '\0';
+  size_of_ip_list = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_ip_list+1];
+  read(clientSD, buffer, size_of_ip_list);
+  buffer[size_of_ip_list] = '\0';
+  ip_list = buffer;
+  delete[] buffer;
+
+  buffer = new char[REDUNDANCE_SIZE+1];
+  read(clientSD, buffer, REDUNDANCE_SIZE);
+  buffer[REDUNDANCE_SIZE] = '\0';
+  redundance = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[USE_SIZE+1];
+  read(clientSD, buffer, USE_SIZE);
+  buffer[USE_SIZE] = '\0';
+  use = buffer[0];
+  delete[] buffer;
+  
+  buffer = NULL;
 }
 
 void Client::opWriteC(int clientSD, string word){
   char* buffer;
   string protocol;
-  protocol += ACT_SND_C;
+  protocol = ACT_SND_C;
   protocol += intToStr(word.size(),DATA_SIZE);
   protocol += word;
 
   buffer = new char[protocol.size()];
-
+  protocol.copy(buffer, protocol.size(), 0);
   write(clientSD,buffer,protocol.size());
   delete[] buffer;
+  buffer = NULL;
   
 }
 
