@@ -45,6 +45,8 @@
 #define ACT_RCV_C 'c'
 #define ACT_SND_S 'S'
 #define ACT_RCV_S 's'
+#define ACT_SND_K 'K'
+#define ACT_RCV_K 'k'
 
 using namespace std;
 #endif // RED_H_INCLUDED

@@ -137,9 +137,9 @@ void Server::readAll(){
       file >> port;
       cout<<ip<<" "<<port<<endl;
       machine.push_back(make_pair(ip,port));
-      
+
     }
-     
+
   }
 }
 
@@ -157,13 +157,13 @@ void Server::connectAll(){
     m_sockets.push_back(sockets);
     sockets.clear();
   }
-  
+
   return;
 }
 
 void Server::iniServerBot()
 {
-  
+
   int NSD = createServerSocket(m_n_port);
   int LSD = createServerSocket(m_l_port);
   int QSD = createServerSocket(m_q_port);
@@ -177,7 +177,7 @@ void Server::iniServerBot()
   std::thread(&Server::listenForClients,this,PSD,ACT_RCV_P).detach();
   std::thread(&Server::listenForClients,this,CSD,ACT_RCV_C).detach();
   std::thread(&Server::listenForClients,this,SSD,ACT_RCV_S).detach();
-  
+
 }
 
 void Server::listenForClients(int serverSD, char action)
@@ -196,7 +196,7 @@ void Server::listenForClients(int serverSD, char action)
     if(action == ACT_RCV_N){
       m_clients.push_back(ConnectFD);
       std::thread(&Server::opNS,this,ConnectFD).detach();
-      
+
     }
     else if(action == ACT_RCV_L)
       std::thread(&Server::opLS,this,ConnectFD).detach();
@@ -208,7 +208,7 @@ void Server::listenForClients(int serverSD, char action)
       std::thread(&Server::opCS,this,ConnectFD).detach();
     else if(action == ACT_RCV_S)
       std::thread(&Server::opSS,this,ConnectFD).detach();*/
-    
+
  }
 }
 
@@ -222,7 +222,7 @@ char Server::opReadN(int clientSD)
 {
   char* buffer;
   char is_successful;
-    
+
   buffer = new char[ACTION_SIZE+1];
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
@@ -261,7 +261,7 @@ char Server::opReadL(int clientSD)
 {
   char* buffer;
   char is_successful;
-    
+
   buffer = new char[ACTION_SIZE+1];
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
@@ -297,7 +297,7 @@ string Server::opReadQ(int clientSD)
   char* buffer;
   int size_of_response;
   string result;
-  
+
   buffer = new char[ACTION_SIZE+1];
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
@@ -345,7 +345,7 @@ void Server::opWriteP(int clientSD, string words, int depth, string attribute_na
 
 void Server::opP(int clientSD, string words, int depth, string attribute_name)
 {
-  
+
 }
 
 char Server::opReadC(int clientSD){
@@ -355,7 +355,7 @@ char Server::opReadC(int clientSD){
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
   delete[] buffer;
-  
+
   buffer = new char[1+1];
   read(clientSD, buffer, 1);
   buffer[1] = '\0';
@@ -372,7 +372,7 @@ void Server::opWriteC(int clientSD, string c_protocol){
   c_protocol.copy(buffer, c_protocol.size(), 0);
   cout<<"enviando protocolo: "<<c_protocol<<endl;
   write(clientSD, buffer, c_protocol.size());
-  
+
 }
 
 char Server::opC(int clientSD, string c_protocol){
@@ -387,7 +387,31 @@ void Server::opReadKeep(int clientSD)
 
 void Server::opWriteKeep(int clientSD)
 {
+  int n;
+  char* protocol;
+  protocol = new char[ACTION_SIZE+1];
+  string message = "KT";
+  cout<<"Ready Protocol"<<endl;
+  while (true) {
+    n = write(clientSD,message.data(),message.size());
+    //if (n < 0) //perror("ERROR writing to socket");
+    if (n <= 0) {
+      cout<<"fail"<<endl;
+      break;
+    }
+    cout<<"n = "<< n <<" ||Sended Keep"<<endl;
 
+    n = read(clientSD, protocol, ACTION_SIZE + 1);
+    //if (n > 0) perror("ERROR writing to socket");
+    if (n <= 0) {
+      cout<<"fail"<<endl;
+      break;
+    }
+    cout<<"n = " << n <<" ||Received Keep --"<<protocol<<"--"<<endl;
+    sleep(5);
+  }
+  shutdown(clientSD,SHUT_RDWR);
+  close(clientSD);
 }
 
 void Server::opKeep(int clientSD){
@@ -406,7 +430,7 @@ void Server::opNS(int clientSD)
   buffer[ACTION_SIZE] = '\0';
   n_protocol = buffer;
   cout<<"protocolo a usar: "<<buffer<<endl;
-  
+
   if(buffer[0] == ACT_SND_S || buffer[0] == ACT_SND_C){
     if(buffer[0] == ACT_SND_S){
       cout<<"procesando..."<<endl;
@@ -429,7 +453,7 @@ void Server::opNS(int clientSD)
 	cout<<"my ip list: "<<ip_list<<endl;
 
 	opWriteCS(clientSD, ip_list, m_sockets[pos].size(), is_successful);
-      
+
     }
   }
   else{
@@ -479,29 +503,29 @@ void Server::opNS(int clientSD)
 	cout<<result<<endl;
 	mtx.unlock();
 	opWriteQS(m_clients.back(),result);
-	
-	read(clientSD, buffer, ACTION_SIZE);	
+
+	read(clientSD, buffer, ACTION_SIZE);
 	time(&t_end);
       }
       //opWriteQS(m_clients.back(),result);
     }
-    
+
   }
-  
+
   //insert word
 
   //Debe ser otro clientSD
-  
-  
-  
-  
+
+
+
+
 }
 
 string Server::opReadNS(int clientSD, std::string& protocol, int &pos){
   char* buffer;
   int size_of_data, size_of_attributes;
   string data, attributes;
-  
+
 
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
@@ -537,7 +561,7 @@ string Server::opReadNS(int clientSD, std::string& protocol, int &pos){
   buffer = NULL;
 
   cout<<data<<endl;
-  
+
   return protocol;
 }
 
@@ -599,7 +623,7 @@ void Server::opReadLS(int clientSD, std::string& l_protocol, int &pos, int &pos_
   data_2 = buffer;
   l_protocol += buffer;
   delete[] buffer;
-  
+
   buffer = NULL;
 
   pos = (hash<string>{}(data_1) % (m_sockets.size()-1)) + 1;
@@ -609,7 +633,7 @@ void Server::opReadLS(int clientSD, std::string& l_protocol, int &pos, int &pos_
 void Server::opWriteLS(int clientSD, char is_successful){
   string protocol;
   char* buffer;
-  
+
   protocol = ACT_RCV_L;
   protocol += is_successful;
   cout<<"Enviando protocolo resultado: "<<protocol<<endl;
@@ -622,14 +646,14 @@ void Server::opWriteLS(int clientSD, char is_successful){
 
 void Server::opQS(int clientSD)
 {
-  
+
 }
 
 string Server::opReadQSSlave(int clientSD){
   char* buffer;
   int size_of_response;
   string my_result;
-  
+
   buffer = new char[RESPONSE_SIZE+1];
   read(clientSD, buffer, RESPONSE_SIZE);
   buffer[RESPONSE_SIZE] = '\0';
@@ -650,7 +674,7 @@ string Server::opReadQSSlave(int clientSD){
 void Server::opReadQS(int clientSD, string& q_protocol, int &pos){
   char* buffer;
   int size_of_data;
-  
+
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
   buffer[DATA_SIZE] = '\0';
@@ -706,20 +730,20 @@ void Server::opWriteQS(int clientSD, string result){
 
 void Server::opPS(int clientSD)
 {
-  
+
 }
 
 void Server::opReadPS(int clientSD, string words, int depth, string attribute_name){
-  
+
 }
 
 void Server::opWritePS(int clientSD, string words, int depth, string attribute_name){
-  
+
 }
 
 void Server::opCS(int clientSD)
 {
-  
+
 }
 
 void Server::opReadCS(int clientSD, string& c_protocol, int &pos){
@@ -731,7 +755,7 @@ void Server::opReadCS(int clientSD, string& c_protocol, int &pos){
   size_of_data = stoi(buffer);
   c_protocol += buffer;
   delete[] buffer;
-  
+
   buffer = new char[size_of_data+1];
   read(clientSD, buffer, size_of_data);
   buffer[size_of_data] = '\0';
@@ -739,7 +763,7 @@ void Server::opReadCS(int clientSD, string& c_protocol, int &pos){
   c_protocol += buffer;
   delete[] buffer;
 
-  
+
 }
 
 void Server::opWriteCS(int clientSD, string ip_list, int redundance, char use){

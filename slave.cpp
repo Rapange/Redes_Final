@@ -44,9 +44,9 @@ void Slave::readAll(){
       file >> port;
       cout<<ip<<" "<<port<<endl;
       machine.push_back(make_pair(ip,port));
-      
+
     }
-     
+
   }
 }
 
@@ -64,7 +64,7 @@ void Slave::connectAll(){
     m_sockets.push_back(sockets);
     sockets.clear();
   }
-  
+
   return;
 }
 
@@ -162,13 +162,14 @@ int Slave::createClientSocket(int portNumber,std::string serverIP)
 
 void Slave::iniServerBot()
 {
-  
+
   int NSD = createServerSocket(m_n_port);
   int LSD = createServerSocket(m_l_port);
   int QSD = createServerSocket(m_q_port);
   int PSD = createServerSocket(m_p_port);
   int CSD = createServerSocket(m_c_port);
   int SSD = createServerSocket(m_s_port);
+  int KSD = createServerSocket(m_keepAlive_port);
 
   std::thread(&Slave::listenForClients,this,NSD,ACT_RCV_N).detach();
   std::thread(&Slave::listenForClients,this,LSD,ACT_RCV_L).detach();
@@ -176,7 +177,8 @@ void Slave::iniServerBot()
   std::thread(&Slave::listenForClients,this,PSD,ACT_RCV_P).detach();
   std::thread(&Slave::listenForClients,this,CSD,ACT_RCV_C).detach();
   std::thread(&Slave::listenForClients,this,SSD,ACT_RCV_S).detach();
-  
+  std::thread(&Slave::listenForClients,this,KSD,ACT_RCV_K).detach();
+
 }
 
 void Slave::listenForClients(int serverSD, char action)
@@ -204,7 +206,8 @@ void Slave::listenForClients(int serverSD, char action)
       std::thread(&Slave::opCS,this,ConnectFD).detach();
     else if(action == ACT_RCV_S)
       std::thread(&Slave::opSS,this,ConnectFD).detach();*/
-    
+    else if(action == ACT_RCV_K)
+      std::thread(&Slave::opReadKeep,this,ConnectFD).detach();
  }
 }
 
@@ -253,33 +256,33 @@ void Slave::iniClientBot()
 
 char Slave::opReadN(int clientSD)
 {
-  
+
 }
 
 void Slave::opWriteN(int clientSD, string n_protocol)
 {
-  
+
 
 }
 
 char Slave::opN(int clientSD, string n_protocol)
 {
-  
+
 }
 
 char Slave::opReadL(int clientSD)
 {
-  
+
 }
 
 void Slave::opWriteL(int clientSD, string word, string word2)
 {
-  
+
 }
 
 char Slave::opL(int clientSD, string word, string word2)
 {
-  
+
 }
 
 string Slave::opReadQ(int clientSD)
@@ -289,20 +292,20 @@ string Slave::opReadQ(int clientSD)
   string result;
 
   //mtx.lock();
-  
+
   buffer = new char[ACTION_SIZE+1];
   read(clientSD, buffer, ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
   cout<<buffer<<endl;
   delete[] buffer;
-  
+
   buffer = new char[RESPONSE_SIZE+1];
   read(clientSD, buffer, RESPONSE_SIZE);
   buffer[RESPONSE_SIZE] = '\0';
   cout<<buffer<<endl;
   size_of_response = stoi(buffer);
   delete[] buffer;
-  
+
   buffer = new char[size_of_response+1];
   read(clientSD, buffer, size_of_response);
   buffer[size_of_response] = '\0';
@@ -337,7 +340,7 @@ void Slave::opWriteQ(int clientSD, string word, int depth, char attributes)
 
 void Slave::opQ(int clientSD, string word, int depth, bool attributes)
 {
-  
+
 }
 
 void Slave::opReadP(int clientSD, string words, int depth, string attribute_name)
@@ -352,15 +355,15 @@ void Slave::opWriteP(int clientSD, string words, int depth, string attribute_nam
 
 void Slave::opP(int clientSD, string words, int depth, string attribute_name)
 {
-  
+
 }
 
 void Slave::opReadC(int clientSD, string word){
 }
 
 void Slave::opWriteC(int clientSD, string word){
-  
-  
+
+
 }
 
 void Slave::opC(int clientSD, string word){
@@ -368,6 +371,27 @@ void Slave::opC(int clientSD, string word){
 
 void Slave::opReadKeep(int clientSD)
 {
+  int n;
+  char* message;
+  message = new char[ACTION_SIZE+1];
+  while(true){
+    n = read(clientSD, message, ACTION_SIZE + 1);
+    if (n < 0) perror("ERROR writing to socket");
+    cout<<"Received Keep --"<<message<<"--"<<endl;
+    if (n <= 0) {
+      cout<<"fail"<<endl;
+      break;
+    }
+
+    string confirm = "kR";
+    n = write(clientSD,confirm.data(),confirm.size());
+    if (n <= 0) {
+      cout<<"fail"<<endl;
+      break;
+    }//perror("ERROR writing to socket");
+  }
+  shutdown(clientSD,SHUT_RDWR);
+  close(clientSD);
 
 }
 
@@ -452,10 +476,10 @@ void Slave::opNS(int clientSD)
     //mtx.unlock();
     buffer[ACTION_SIZE+1] = '\0';
 
-    
+
     protocol = buffer;
     cout<<"Termino inicializacion"<<endl;
-  
+
     if(buffer[0] == ACT_SND_N){
       cout<<"Se agrega N"<<endl;
       opReadNS(clientSD,data,attributes);
@@ -490,11 +514,11 @@ void Slave::opNS(int clientSD)
       opReadCS(clientSD, data);
       if(!m_words[data]) opWriteCS(clientSD, '0');
       else opWriteCS(clientSD, '1');
-      
+
     }
   }
-  
-  
+
+
 }
 
 void Slave::opReadNS(int clientSD, string& data, string& attributes){
@@ -583,7 +607,7 @@ void Slave::opReadLS(int clientSD, string& word, string &word2){
   delete[] buffer;
 
   cout<<"Se lee reverse"<<endl;
-  
+
   buffer = new char[2];
   read(clientSD,buffer,1);
   buffer[1] = '\0';
@@ -592,14 +616,14 @@ void Slave::opReadLS(int clientSD, string& word, string &word2){
     swap(word,word2);
   }
   delete[] buffer;
-  
+
   buffer = NULL;
 }
 
 void Slave::opWriteLS(int clientSD, char is_successful){
   string protocol;
   char* buffer;
-  
+
   protocol = ACT_RCV_L;
   protocol += is_successful;
 
@@ -611,13 +635,13 @@ void Slave::opWriteLS(int clientSD, char is_successful){
 
 void Slave::opQS(int clientSD)
 {
-  
+
 }
 
 void Slave::opReadQS(int clientSD, string &word, int &depth, char &get_attributes){
   char* buffer;
   int size_of_data;
-  
+
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
   buffer[DATA_SIZE] = '\0';
@@ -665,26 +689,26 @@ void Slave::opWriteQS(int clientSD, string result){
 
 void Slave::opPS(int clientSD)
 {
-  
+
 }
 
 void Slave::opReadPS(int clientSD, string words, int depth, string attribute_name){
-  
+
 }
 
 void Slave::opWritePS(int clientSD, string words, int depth, string attribute_name){
-  
+
 }
 
 void Slave::opCS(int clientSD)
 {
-  
+
 }
 
 void Slave::opReadCS(int clientSD, string& word){
   char* buffer;
   int size_of_data;
-  
+
   buffer = new char[DATA_SIZE+1];
   read(clientSD, buffer, DATA_SIZE);
   buffer[DATA_SIZE] = '\0';
