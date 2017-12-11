@@ -554,7 +554,7 @@ void Server::opNS(int clientSD)
 	}
 	cout<<"my ip list: "<<ip_list<<endl;
 
-	opWriteCS(clientSD, ip_list, m_sockets[pos].size(), is_successful);
+	opWriteCS(clientSD, ip_list, m_sockets[pos].size()-m_available[pos], is_successful);
 
     }
   }
