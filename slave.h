@@ -15,6 +15,7 @@ class Slave
        mutex mtx;
 	int id;
 	std::vector< std::vector< std::pair < std::string, int > > > m_ip_port;
+  std::vector<int> m_available;
         std::vector< std::vector< int > > m_sockets;
 	std::unordered_map<std::string, Node* > m_words;
 

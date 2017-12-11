@@ -16,6 +16,7 @@ class Server
 	  int m_seconds;
 	  std::vector< std::vector< std::pair < std::string, int > > > m_ip_port;
     std::vector< std::vector< int > > m_sockets;
+    std::vector< int > m_available;
 	  vector<int> m_clients;
 
     Server(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port);
@@ -56,7 +57,7 @@ class Server
 	  char opC(int clientSD, string c_protocol);
 
 	  void opReadKeep(int clientSD); //Keep Alive operation
-    void opWriteKeep(int clientSD);
+    void opWriteKeep(int clientSD,int c_port,string c_ip);
 	  void opKeep(int clientSD);
 
 	  //Server side

@@ -37,6 +37,7 @@ void Slave::readAll(){
       if(ip == "-1"){
 	m_ip_port.push_back(machine);
 	machine.clear();
+  m_available.push_back(0);
 	//cout<<"PUSH ALL"<<endl;
 	continue;
       }
@@ -444,7 +445,7 @@ void Slave::doAllQuery(int clientSD, string word, int depth, char get_attributes
     for(unsigned int i = 0; i < m_words[word]->m_relations.size(); i++){
       current_word = m_words[word]->m_relations[i];
       pos = (hash<string>{}(current_word) % (m_sockets.size() - 1)) + 1;
-      current_socket = m_sockets[pos][0];
+      current_socket = m_sockets[pos][m_available[pos]];
 
       //mtx.lock();
       opWriteQ(current_socket, current_word, depth - 1, get_attributes);
@@ -484,7 +485,20 @@ void Slave::opNS(int clientSD)
 
     cout<<"Inicializacion"<<endl;
     //mtx.lock();
-    read(clientSD,buffer,ACTION_SIZE);
+    int n = read(clientSD,buffer,ACTION_SIZE);
+    if (n <= 0) {
+      cout<<"fail"<<endl;
+      int poss = 0;
+      for(unsigned int i = 0; i < m_sockets.size(); i++){
+        for(unsigned int j = 0; j < m_sockets[i].size(); j++){
+           if(m_sockets[i][j] == clientSD){
+             poss = i;
+           }
+        }
+      }
+      m_available[poss]++;
+      clientSD = m_sockets[poss][m_available[poss]];
+    }
     //mtx.unlock();
     buffer[ACTION_SIZE+1] = '\0';
 
@@ -529,6 +543,8 @@ void Slave::opNS(int clientSD)
 
     }
   }
+  shutdown(clientSD,SHUT_RDWR);
+  close(clientSD);
 
 
 }

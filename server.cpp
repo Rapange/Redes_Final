@@ -130,6 +130,7 @@ void Server::readAll(){
       if(ip == "-1"){
 	m_ip_port.push_back(machine);
 	machine.clear();
+  m_available.push_back(0);
 	//cout<<"PUSH ALL"<<endl;
 	continue;
       }
@@ -214,9 +215,7 @@ void Server::listenForClients(int serverSD, char action)
 
 void Server::iniClientBot()
 {
-  cout<<"aqui si"<<endl;
   connectAll();
-  cout<<"aqui no"<<endl;
   iniMasterCheckBot();
   while(true);
 }
@@ -229,7 +228,7 @@ void Server::iniMasterCheckBot()
       cout<<"Port"<<m_ip_port[i][j].second<<endl;
       cout<<"IP"<<m_ip_port[i][j].first<<endl;
       int checkSD = createClientSocket(m_ip_port[i][j].second + 6, m_ip_port[i][j].first);
-      std::thread(&Server::opWriteKeep,this,checkSD).detach();
+      std::thread(&Server::opWriteKeep,this,checkSD,m_ip_port[i][j].second, m_ip_port[i][j].first).detach();
     }
   }
 }
@@ -401,18 +400,37 @@ void Server::opReadKeep(int clientSD)
 
 }
 
-void Server::opWriteKeep(int clientSD)
+void Server::opWriteKeep(int clientSD, int c_port, string c_ip)
 {
   int n;
+  bool flag;
   char* protocol;
   protocol = new char[ACTION_SIZE+1];
   string message = "KT";
   cout<<"Ready Protocol"<<endl;
   while (true) {
+    flag = false;
     n = write(clientSD,message.data(),message.size());
     //if (n < 0) //perror("ERROR writing to socket");
     if (n <= 0) {
       cout<<"fail"<<endl;
+
+      if (n <= 0) {
+        int poss = 0;
+        for(unsigned int i = 0; i < m_ip_port.size(); i++){
+          for(unsigned int j = 0; j < m_ip_port[i].size(); j++){
+             if(m_ip_port[i][j].first == c_ip && m_ip_port[i][j].second == c_port){
+               poss = i;
+               cout<<"Se murio: "<<poss<<endl;
+               flag = true;
+               cout<<"Se tiene: "<<poss<<"-esp"<<endl;
+               m_available[poss]++;
+             }
+          }
+        }
+
+
+      }
       break;
     }
     cout<<"n = "<< n <<" ||Sended Keep"<<endl;
@@ -421,6 +439,23 @@ void Server::opWriteKeep(int clientSD)
     //if (n > 0) perror("ERROR writing to socket");
     if (n <= 0) {
       cout<<"fail"<<endl;
+
+      if (n <= 0) {
+        int poss = 0;
+        for(unsigned int i = 0; i < m_ip_port.size(); i++){
+          for(unsigned int j = 0; j < m_ip_port[i].size(); j++){
+             if(m_ip_port[i][j].first == c_ip && m_ip_port[i][j].second == c_port && !flag){
+               poss = i;
+               cout<<"Se murio: "<<poss<<endl;
+               flag = true;
+               cout<<"Se tiene: "<<poss<<endl;
+               m_available[poss]++;
+             }
+          }
+        }
+
+
+      }
       break;
     }
     cout<<"n = " << n <<" ||Received Keep --"<<protocol<<"--"<<endl;
@@ -458,7 +493,10 @@ void Server::opNS(int clientSD)
 
       //for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
 	cout<<"Sending word to slave."<<endl;
-	current_socket = m_sockets[pos][0];
+  cout<<"hola: "<<pos<<" "<<m_available[pos]<<endl;
+  cout<<m_ip_port[pos][m_available[pos]].first<<" "<<m_ip_port[pos][m_available[pos]].second<<endl;
+  current_socket = m_sockets[pos][m_available[pos]];
+
 	is_successful = opC(current_socket, n_protocol);
 	//}
 
@@ -505,7 +543,7 @@ void Server::opNS(int clientSD)
       cout<<"Es Q"<<endl;
       opReadQS(clientSD, n_protocol, pos);
       cout<<"protocolo Q es: "<<n_protocol<<endl;
-      current_socket = m_sockets[pos][0];
+      current_socket = m_sockets[pos][m_available[pos]];
       opWriteQ(current_socket, n_protocol);
       //opWriteQS(clientSD, result);
     }
