@@ -20,14 +20,14 @@ class Client
         std::string intToStr(int num, int size);
 
         
-	
+
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
 	
         void iniClientBot(char action, vector<string>& arguments);
         int createClientSocket(int portNumber, string serverIP);
         int createServerSocket(int portNumber);
-        
+        bool isNum(string word);
 	//Client side
 	
         char opReadN(int clientSD);
@@ -38,12 +38,12 @@ class Client
         void opWriteL(int clientSD, string word, string word2);
         char opL(int clientSD, string word, string word2);
 
-	string opReadQ(int clientSD);
+	string opReadQ(int clientSD, char &is_hoja);
         void opWriteQ(int clientSD, string word, int depth, char attributes);
 	string opQ(int clientSD, string word, int depth, char attributes);
 
-	void opReadP(int clientSD, string words, int depth, string attribute_name);
-        void opWriteP(int clientSD, string words, int depth, string attribute_name);
+        string opReadP(int clientSD);
+        void opWriteP(int clientSD, vector<string> &p_words);
 	void opP(int clientSD, string words, int depth, string attribute_name);
 
 	void opReadC(int clientSD, string &ip_list, int &redundance, char& use);

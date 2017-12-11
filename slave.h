@@ -22,11 +22,11 @@ class Slave
         Slave(int n_port, int l_port, int q_port, int p_port, int c_port, int s_port, int keepAlive_port);
         virtual ~Slave();
         std::string intToStr(int num, int size);
-
+	vector<string> mySplit(string line);
 
 	void readAll();
 	void connectAll();
-
+	void readDB(string name, string name_syn);
 
         void iniServerBot();
 	void listenForClients(int serverSD, char action);
@@ -69,7 +69,7 @@ class Slave
 
 	//Server side
 
-	string formatResult(string word, char get_attributes);
+	string formatResult(string word, char get_attributes, int how_many);
 	void doAllQuery(int clientSD, string word, int depth, char get_attributes);
 
 	void opNS(int clientSD);
@@ -82,11 +82,11 @@ class Slave
 
 	void opQS(int clientSD);
 	void opReadQS(int clientSD, string &word, int &depth, char &get_attributes);
-	void opWriteQS(int clientSD, string result);
+	void opWriteQS(int clientSD, string result, char is_hoja);
 
 	void opPS(int clientSD);
-	void opReadPS(int clientSD, string words, int depth, string attribute_name);
-	void opWritePS(int clientSD, string words, int depth, string attribute_name);
+	void opReadPS(int clientSD, string &word, int &depth);
+	void opWritePS(int clientSD, string words);
 
 	void opCS(int clientSD);
 	void opReadCS(int clientSD, string& word);

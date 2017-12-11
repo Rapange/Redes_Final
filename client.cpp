@@ -131,6 +131,15 @@ void Client::listenForClients(int serverSD, char action)
   
 }
 
+bool Client::isNum(string word){
+  for(unsigned int i = 0; i < word.size(); i++){
+    if(word[i]=='1' || word[i] == '2' || word[i] == '3' || word[i] == '4' ||
+       word[i]=='5' || word[i] == '6' || word[i] == '7' || word[i] == '8' ||
+       word[i]=='9' || word[i] == '0') return true;
+  }
+  return false;
+}
+
 void Client::iniClientBot(char action, vector<string> &arguments)
 {
   int port;
@@ -138,7 +147,8 @@ void Client::iniClientBot(char action, vector<string> &arguments)
   string word_1, word_2;
   string attr, result, ip_list;
   int query_N, depth, redundance;
-  char is_successful, get_attributes, use;
+  char is_successful, get_attributes, use, is_hoja = '0';
+  vector<string> p_words;
   ifstream file;
   file.open("IPs_client.txt");
   if(file.is_open()){
@@ -175,10 +185,25 @@ void Client::iniClientBot(char action, vector<string> &arguments)
     if(arguments.size() > 2) get_attributes = '1';
     //cout<<"Se envian: "<<get_attributes<<endl;
     opWriteQ(query_N, word_1, depth, get_attributes);
-    while(true){
-      result = opReadQ(query_N);
+    while(is_hoja != '1'){
+      result = opReadQ(query_N, is_hoja);
       cout<<result<<endl;
     }
+  }
+  else if(action == ACT_SND_P){
+    cout<<"Es P"<<endl;
+    p_words.push_back(arguments[0]);
+    p_words.push_back(arguments[1]);
+    for(unsigned int i = 2;i < arguments.size();i++){
+      if(arguments[i] == "-A") break;
+      p_words.push_back(arguments[i]);
+    }
+    if(!isNum(p_words.back())){
+      p_words.push_back("1");
+    }
+    opWriteP(query_N, p_words);
+    result = opReadP(query_N);
+    cout<<result<<endl;
   }
   else if(action == ACT_SND_C){
     cout<<"Es C"<<endl;
@@ -325,7 +350,7 @@ char Client::opL(int clientSD, string word, string word2)
   return opReadL(clientSD);
 }
 
-string Client::opReadQ(int clientSD)
+string Client::opReadQ(int clientSD, char &is_hoja)
 {
   char* buffer;
   int size_of_response;
@@ -348,6 +373,14 @@ string Client::opReadQ(int clientSD)
   response = buffer;
   delete[] buffer;
 
+  buffer = new char[1+1];
+  read(clientSD, buffer, 1);
+  buffer[1] = '\0';
+  is_hoja = buffer[0];
+  delete[] buffer;
+
+  buffer = NULL;
+  
   return response;
   
 }
@@ -374,17 +407,55 @@ void Client::opWriteQ(int clientSD, string word, int depth, char attributes)
 string Client::opQ(int clientSD, string word, int depth, char attributes)
 {
   opWriteQ(clientSD, word, depth, attributes);
-  return opReadQ(clientSD);
+  //return opReadQ(clientSD);
 }
 
-void Client::opReadP(int clientSD, string words, int depth, string attribute_name)
+string Client::opReadP(int clientSD)
 {
+  string my_result;
+  char* buffer;
+  int size_of_result;
 
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
+
+  buffer = new char[RESPONSE_SIZE+1];
+  read(clientSD, buffer, RESPONSE_SIZE);
+  buffer[RESPONSE_SIZE] = '\0';
+  size_of_result = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_result+1];
+  read(clientSD, buffer, size_of_result);
+  buffer[size_of_result] = '\0';
+  my_result = buffer;
+  delete[] buffer;
+
+  buffer = NULL;
+
+  return my_result;
 }
 
-void Client::opWriteP(int clientSD, string words, int depth, string attribute_name)
+void Client::opWriteP(int clientSD, vector<string> &p_words)
 {
+  string list_words, protocol;
+  char* buffer;
+  protocol = ACT_SND_P;
+  for(unsigned int i = 0; i < p_words.size()-1; i++){
+    list_words += p_words[i];
+    list_words += ",";
+  }
+  protocol += intToStr(list_words.size(),DATA_LIST_SIZE);
+  protocol += list_words;
+  protocol += p_words.back();
 
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+
+  cout<<"Protocolo: "<<protocol<<endl;
+  write(clientSD, buffer, protocol.size());
 }
 
 void Client::opP(int clientSD, string words, int depth, string attribute_name)

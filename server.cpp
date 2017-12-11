@@ -213,6 +213,19 @@ void Server::listenForClients(int serverSD, char action)
  }
 }
 
+vector<string> Server::strToVec(string word){
+  vector<string> words;
+  string my_word;
+  for(unsigned int i = 0; i < word.size(); i++){
+    if(word[i] == ','){
+      words.push_back(my_word);
+      my_word = "";
+    }
+    else my_word += word[i];
+  }
+  return words;
+}
+
 void Server::iniClientBot()
 {
   connectAll();
@@ -348,14 +361,47 @@ string Server::opQ(int clientSD, string q_protocol)
   return opReadQ(clientSD);
 }
 
-void Server::opReadP(int clientSD, string words, int depth, string attribute_name)
+string Server::opReadP(int clientSD)
 {
+  char* buffer;
+  int size_of_response;
+  string my_result;
+  buffer = new char[ACTION_SIZE+1];
+  read(clientSD, buffer, ACTION_SIZE);
+  buffer[ACTION_SIZE] = '\0';
+  delete[] buffer;
 
+  buffer = new char[RESPONSE_SIZE+1];
+  read(clientSD, buffer, RESPONSE_SIZE);
+  buffer[RESPONSE_SIZE] = '\0';
+  size_of_response = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_response+1];
+  read(clientSD, buffer, size_of_response);
+  buffer[size_of_response] = '\0';
+  my_result = buffer;
+  delete[] buffer;
+  buffer = NULL;
+
+  return my_result;
 }
 
-void Server::opWriteP(int clientSD, string words, int depth, string attribute_name)
+void Server::opWriteP(int clientSD, string word, int depth)
 {
+  string protocol;
+  char* buffer;
+  protocol = ACT_SND_P;
+  protocol += intToStr(word.size(), DATA_SIZE);
+  protocol += word;
+  protocol += intToStr(depth, DEPTH_SIZE);
 
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+  cout<<"Protocolo a slave: "<<protocol<<endl;
+
+  write(clientSD, buffer, protocol.size());
+  
 }
 
 void Server::opP(int clientSD, string words, int depth, string attribute_name)
@@ -472,10 +518,12 @@ void Server::opKeep(int clientSD){
 
 void Server::opNS(int clientSD)
 {
-  char is_successful;
-  string n_protocol, ip_list;
+  char is_successful, is_hoja;
+  string n_protocol, ip_list, word_list;
   char buffer[ACTION_SIZE+1];
-  int pos, pos_2, current_socket;
+  int pos, pos_2, current_socket, p_depth;
+  vector<int> pos_vec;
+  vector<string> words_vec;
 
   read(clientSD,buffer,ACTION_SIZE);
   buffer[ACTION_SIZE] = '\0';
@@ -547,20 +595,48 @@ void Server::opNS(int clientSD)
       opWriteQ(current_socket, n_protocol);
       //opWriteQS(clientSD, result);
     }
+    else if(buffer[0] == ACT_SND_P){
+      cout<<"Es P"<<endl;
+      opReadPS(clientSD, word_list, p_depth);
+      cout<<word_list<<" "<<p_depth<<endl;
+      words_vec = strToVec(word_list);
+
+      cout<<"Tam de vector: "<<words_vec.size()<<endl;
+      for(unsigned int i = 0; i < words_vec.size(); i++){
+	pos_vec.push_back( (hash<string>{}(words_vec[i]) % (m_sockets.size() - 1))+1);
+	cout<<"pos: "<<pos<<endl;
+      }
+      for(unsigned int i = 0; i < words_vec.size(); i++){
+	current_socket = m_sockets[pos_vec[i]][m_available[pos_vec[i]]];
+	opWriteP(current_socket, words_vec[i], p_depth);
+      }
+
+      for(unsigned int i = 0; i < words_vec.size(); i++){
+	current_socket = m_sockets[pos_vec[i]][m_available[pos_vec[i]]];
+	result += opReadP(current_socket);
+      }
+
+      opWritePS(clientSD, result);
+      result = "";
+    }
     else if(buffer[0] == ACT_RCV_Q){
       time_t t_start, t_end;
       time(&t_start);
       time(&t_end);
-      while(difftime(t_end,t_start) < m_seconds){
+      result = "";
+      is_hoja = '0';
+      cout<<"He rcibido resultado"<<endl;
+      while(true){
 	mtx.lock();
-	result = opReadQSSlave(clientSD);
+	result = opReadQSSlave(clientSD, is_hoja);
 	cout<<result<<endl;
 	mtx.unlock();
-	opWriteQS(m_clients.back(),result);
-
+	opWriteQS(m_clients.back(),result,is_hoja);
+	if(is_hoja == '1') break;
 	read(clientSD, buffer, ACTION_SIZE);
 	time(&t_end);
       }
+      cout<<"FINISHED"<<endl;
       //opWriteQS(m_clients.back(),result);
     }
   }
@@ -702,7 +778,7 @@ void Server::opQS(int clientSD)
 
 }
 
-string Server::opReadQSSlave(int clientSD){
+string Server::opReadQSSlave(int clientSD, char &is_hoja){
   char* buffer;
   int size_of_response;
   string my_result;
@@ -717,6 +793,12 @@ string Server::opReadQSSlave(int clientSD){
   read(clientSD, buffer, size_of_response);
   buffer[size_of_response] = '\0';
   my_result = buffer;
+  delete[] buffer;
+
+  buffer = new char[1+1];
+  read(clientSD, buffer, 1);
+  buffer[1] = '\0';
+  is_hoja = buffer[0];
   delete[] buffer;
 
   buffer = NULL;
@@ -765,12 +847,13 @@ void Server::opReadQS(int clientSD, string& q_protocol, int &pos){
   buffer = NULL;
 }
 
-void Server::opWriteQS(int clientSD, string result){
+void Server::opWriteQS(int clientSD, string result, char is_hoja){
   string protocol;
   char* buffer;
   protocol = ACT_RCV_Q;
   protocol += intToStr(result.size(), RESPONSE_SIZE);
   protocol += result;
+  protocol += is_hoja;
 
   buffer = new char[protocol.size()];
   protocol.copy(buffer, protocol.size(),0);
@@ -786,12 +869,42 @@ void Server::opPS(int clientSD)
 
 }
 
-void Server::opReadPS(int clientSD, string words, int depth, string attribute_name){
+void Server::opReadPS(int clientSD, string &word_list, int &depth){
+  char* buffer;
+  int size_of_data_list;
 
+  buffer = new char[DATA_LIST_SIZE+1];
+  read(clientSD, buffer, DATA_LIST_SIZE);
+  buffer[DATA_LIST_SIZE] = '\0';
+  size_of_data_list = stoi(buffer);
+  delete[] buffer;
+
+  buffer = new char[size_of_data_list+1];
+  read(clientSD, buffer, size_of_data_list);
+  buffer[size_of_data_list] = '\0';
+  word_list = buffer;
+  delete[] buffer;
+
+  buffer = new char[DEPTH_SIZE+1];
+  read(clientSD, buffer, DEPTH_SIZE);
+  buffer[DEPTH_SIZE] = '\0';
+  depth = stoi(buffer);
+  delete[] buffer;
+
+  buffer = NULL;
 }
 
-void Server::opWritePS(int clientSD, string words, int depth, string attribute_name){
+void Server::opWritePS(int clientSD, string words){
+  string protocol;
+  char* buffer;
+  protocol = ACT_RCV_P;
+  protocol += intToStr(words.size(), RESPONSE_SIZE);
+  protocol += words;
 
+  buffer = new char[protocol.size()];
+  protocol.copy(buffer, protocol.size(), 0);
+
+  write(clientSD, buffer, protocol.size());
 }
 
 void Server::opCS(int clientSD)

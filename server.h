@@ -24,8 +24,10 @@ class Server
 
     std::string intToStr(int num, int size);
     void readAll();
-	  void connectAll();
-
+    void connectAll();
+    
+    vector<string> strToVec(string words);
+	  
     void iniServerBot();
   	void listenForClients(int serverSD, char action);
 
@@ -48,8 +50,8 @@ class Server
     void opWriteQ(int clientSD, string q_protocol);
   	string opQ(int clientSD, string q_protocol);
 
-	  void opReadP(int clientSD, string words, int depth, string attribute_name);
-    void opWriteP(int clientSD, string words, int depth, string attribute_name);
+	  string opReadP(int clientSD);
+	  void opWriteP(int clientSD, string word, int depth);
 	  void opP(int clientSD, string words, int depth, string attribute_name);
 
 	  char opReadC(int clientSD);
@@ -70,14 +72,14 @@ class Server
   	void opReadLS(int clientSD, std::string& l_protocol, int& pos, int& pos_2);
   	void opWriteLS(int clientSD, char is_successful);
 
-  	string opReadQSSlave(int clientSD);
+  	string opReadQSSlave(int clientSD, char& is_hoja);
   	void opQS(int clientSD);
   	void opReadQS(int clientSD, string &q_protocol, int &pos);
-  	void opWriteQS(int clientSD, string result);
+  	void opWriteQS(int clientSD, string result, char is_hoja);
 
   	void opPS(int clientSD);
-  	void opReadPS(int clientSD, string words, int depth, string attribute_name);
-  	void opWritePS(int clientSD, string words, int depth, string attribute_name);
+  	void opReadPS(int clientSD, string &word_list,int &depth);
+  	void opWritePS(int clientSD, string words);
 
 	  void opCS(int clientSD);
 	  void opReadCS(int clientSD, string &c_protocol, int &pos);
