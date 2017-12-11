@@ -214,8 +214,24 @@ void Server::listenForClients(int serverSD, char action)
 
 void Server::iniClientBot()
 {
+  cout<<"aqui si"<<endl;
   connectAll();
+  cout<<"aqui no"<<endl;
+  iniMasterCheckBot();
   while(true);
+}
+
+void Server::iniMasterCheckBot()
+{
+
+  for(unsigned int i = 1; i < m_ip_port.size(); i++){
+    for(unsigned int j =0; j < m_ip_port[i].size(); j++){
+      cout<<"Port"<<m_ip_port[i][j].second<<endl;
+      cout<<"IP"<<m_ip_port[i][j].first<<endl;
+      int checkSD = createClientSocket(m_ip_port[i][j].second + 6, m_ip_port[i][j].first);
+      std::thread(&Server::opWriteKeep,this,checkSD).detach();
+    }
+  }
 }
 
 char Server::opReadN(int clientSD)
@@ -509,7 +525,6 @@ void Server::opNS(int clientSD)
       }
       //opWriteQS(m_clients.back(),result);
     }
-
   }
 
   //insert word

@@ -169,16 +169,29 @@ void Slave::iniServerBot()
   int PSD = createServerSocket(m_p_port);
   int CSD = createServerSocket(m_c_port);
   int SSD = createServerSocket(m_s_port);
-  int KSD = createServerSocket(m_keepAlive_port);
 
   std::thread(&Slave::listenForClients,this,NSD,ACT_RCV_N).detach();
   std::thread(&Slave::listenForClients,this,LSD,ACT_RCV_L).detach();
   std::thread(&Slave::listenForClients,this,QSD,ACT_RCV_Q).detach();
   std::thread(&Slave::listenForClients,this,PSD,ACT_RCV_P).detach();
   std::thread(&Slave::listenForClients,this,CSD,ACT_RCV_C).detach();
-  std::thread(&Slave::listenForClients,this,SSD,ACT_RCV_S).detach();
-  std::thread(&Slave::listenForClients,this,KSD,ACT_RCV_K).detach();
+}
 
+void Slave::iniSlaveCheckBot()
+{
+  int checkSD = createServerSocket(m_keepAlive_port);
+  int ConnectFD = 0;
+  while(true)
+  {
+    ConnectFD = accept(checkSD, NULL, NULL);
+    if(0 > ConnectFD)
+    {
+      perror("error accept failed");
+      close(checkSD);
+      exit(EXIT_FAILURE);
+    }
+    std::thread(&Slave::opReadKeep,this,ConnectFD).detach();
+  }
 }
 
 void Slave::listenForClients(int serverSD, char action)
@@ -206,8 +219,6 @@ void Slave::listenForClients(int serverSD, char action)
       std::thread(&Slave::opCS,this,ConnectFD).detach();
     else if(action == ACT_RCV_S)
       std::thread(&Slave::opSS,this,ConnectFD).detach();*/
-    else if(action == ACT_RCV_K)
-      std::thread(&Slave::opReadKeep,this,ConnectFD).detach();
  }
 }
 
@@ -251,6 +262,7 @@ char Slave::addRelation(std::string data_from, std::string data_to){
 void Slave::iniClientBot()
 {
   connectAll();
+  iniSlaveCheckBot();
   while(true);
 }
 

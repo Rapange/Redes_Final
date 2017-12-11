@@ -29,6 +29,7 @@ class Server
   	void listenForClients(int serverSD, char action);
 
     void iniClientBot();
+    void iniMasterCheckBot();
     int createClientSocket(int portNumber, string serverIP);
     int createServerSocket(int portNumber);
 
