@@ -549,7 +549,7 @@ void Server::opNS(int clientSD)
 	//}
 
 	cout<<"getting IPs"<<endl;
-	for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
+	for(unsigned int i = m_available[pos]; i < m_sockets[pos].size(); i++){
 	  ip_list += m_ip_port[pos][i].first+",";
 	}
 	cout<<"my ip list: "<<ip_list<<endl;
