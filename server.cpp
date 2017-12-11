@@ -562,7 +562,7 @@ void Server::opNS(int clientSD)
     if(buffer[0] == ACT_SND_N){
       cout<<"ES N"<<endl;
       opReadNS(clientSD, n_protocol, pos);
-      for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
+      for(unsigned int i = m_available[pos]; i < m_sockets[pos].size(); i++){
 	cout<<"Sending request N to: "<< m_ip_port[pos][i].second <<endl;
 	current_socket = m_sockets[pos][i];
 	is_successful = opN(current_socket, n_protocol);
@@ -572,14 +572,14 @@ void Server::opNS(int clientSD)
     else if(buffer[0] == ACT_SND_L){
       cout<<"ES L"<<endl;
       opReadLS(clientSD, n_protocol, pos, pos_2);
-      for(unsigned int i = 0; i < m_sockets[pos].size(); i++){
+      for(unsigned int i = m_available[pos]; i < m_sockets[pos].size(); i++){
 	cout<<"Sending request L1 to: "<< m_ip_port[pos][i].second << endl;
 	current_socket = m_sockets[pos][i];
 	is_successful = opL(current_socket, n_protocol, '0');
       }
 
       if(is_successful == '1'){
-	for(unsigned int i = 0; i < m_sockets[pos_2].size(); i++){
+	for(unsigned int i = m_available[pos]; i < m_sockets[pos_2].size(); i++){
 	  cout<<"Sending request L2 to: "<< m_ip_port[pos_2][i].second << endl;
 	  current_socket = m_sockets[pos_2][i];
 	  is_successful = opL(current_socket, n_protocol, '1');
